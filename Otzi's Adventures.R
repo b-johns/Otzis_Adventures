@@ -1,18 +1,560 @@
 ################################################################################
-# Otzi's Adventures
+# Otzi's Adventures: helping you achieve Himalaya supremum in a compact budget
 ################################################################################
 
 # Load libraries
 library(dplyr)
 library(lme4)
 library(ggplot2)
+library(fitdistrplus)
+library(tidyverse)
+library(stats4)
+select <- dplyr::select
 
 # Load data
 df <- read.csv('climbers_full.csv')
 
 
+# read in dataset #
+# add variables for the height and full name of each peak
+climbers_full <- read.csv("climbers_full.csv") %>%
+  mutate(peakhgt = case_when(peakid == "EVER" ~ 8489,
+                             peakid == "KANG" ~ 8586,
+                             peakid == "LHOT" ~ 8516,
+                             peakid == "MAKA" ~ 8485,
+                             peakid == "CHOY" ~ 8188,
+                             peakid == "DHA1" ~ 8167,
+                             peakid == "MANA" ~ 8163,
+                             peakid == "ANN1" ~ 8091),
+         peakname = case_when(peakid == "EVER" ~ "Everest",
+                              peakid == "KANG" ~ "Kangchenjunga",
+                              peakid == "LHOT" ~ "Lhotse",
+                              peakid == "MAKA" ~ "Makalu",
+                              peakid == "CHOY" ~ "Cho Oyu",
+                              peakid == "DHA1" ~ "Dhaulagiri",
+                              peakid == "MANA" ~ "Manaslu",
+                              peakid == "ANN1" ~ "Annapurna"))
 
 
+
+# create a unique ID for each climber, and tally how many climbs they went on (n_climb),
+# how many summits they achieved (n_success), how often they used oxygen as a 
+# ratio of oxygen use count over climb count (o2_ratio), and whether or
+# not they ultimately died on one of their climbs (died)
+climbers <- climbers_full  %>% 
+  mutate(climb_id = group_indices(.,fname, lname, yob)) %>%
+  group_by(climb_id) %>%
+  mutate(n_climb = sum(n()),
+         died = sum(death),
+         n_success = sum(msuccess),
+         summited = ifelse(n_success == 0, 0, 1),
+         n_o2 = sum(mo2used),
+         o2_ratio = n_o2/n_climb) %>% 
+  ungroup() 
+
+
+# create dataframe that keeps one observation per distinct climber
+climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
+
+
+all_peaks <- climbers$peakid %>% unique(); all_peaks
+
+
+################################################################################
+# Fitting Distributions 
+################################################################################
+
+# It's possible that the number of climbs someone goes on before they die could,
+# in theory, be modeled by a geometric distribution, since we are counting the
+# number of trials (climbs) until a condition is met (death).
+
+# take only the climbers who die, and extract a vector of the number of climbs
+# they went on
+climbs_b4_death <- climbers_unique %>%
+  filter(died == 1) %>%
+  pull(n_climb)
+
+# examining the barplot, there is a steep drop from 1 to 2 climbs, but perhaps
+# it can be modeled by a geometric distribution
+barplot(table(climbs_b4_death),
+        main = "Number of Climbs Before Death",
+        sub = "(Inlcudes Final Climb)",
+        xlab = "Number of Climbs",
+        ylab = "Frequency",
+        col = "firebrick4")
+
+# bin the observed data so we have 10 or more observations per bin
+obs <- table(climbs_b4_death); obs
+obs_bin <- obs
+obs_bin[5] <- sum(obs_bin[5:6]); obs_bin
+obs_bin[6] <- sum(obs_bin[7:12]); obs_bin
+obs_bin <- obs_bin[1:6]; obs_bin
+
+# use fitdist to estimate the parameter p, which is the probability of death
+# on each climb
+param <- fitdist(climbs_b4_death, "geom", method = c("mle")); param
+p <- param[[1]]; p
+
+# bin the theoretical distribution similarly to the observed data
+probs <- c(dgeom(0:3,p), dgeom(4,p) + dgeom(5,p), 1 - pgeom(5,p))
+exp_bin <- probs*length(climbs_b4_death); exp_bin
+
+
+# now we can check a barplot again, comparing the observed values against
+# the expected values. Visually, our observed values don't appear to match the
+# expected distribution very well, but we can conduct a chi-square test to be sure.
+barplot(rbind(obs_bin, exp_bin), 
+        beside = TRUE,
+        main = "Number of Climbs Before Death",
+        sub = "(Inlcudes Final Climb)",
+        xlab = "Number of Climbs",
+        ylab = "Frequency",
+        col = c("firebrick4", "cadetblue4"),
+        legend.text = c("Observed", "Expected"))
+
+# conduct a chi-square test
+ChiSq <-function(obs,exp){
+  sum((obs-exp)^2/exp)
+}
+Chistat <- ChiSq(obs_bin, exp_bin); Chistat
+# lose an extra degree of freedom for having estimated a parameter
+# 6 bins - 2 df = 4 df
+
+# the small p-value tells us that there's no significant chance that
+# these data could be modeled by a geometric distribution. So unfortunately we
+# cannot give clients a good estimate of how many climbs they might go on before
+# expecting an unfortunate accident.
+pchisq(Chistat, 4, lower.tail = FALSE)
+
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+
+# How about the number of summits a climber can expect to achieve before
+# they die? Let's see if this can be modeled geometrically.
+
+# take only the climbers who die, and extract the number of times they summit
+summits_b4_death <- climbers_unique %>%
+  filter(died == 1) %>% 
+  pull(n_success)
+
+# Examining the barplot, there is a steady decrease from 0 to 1, and a sharper
+# drop from 1 to 2, but perhaps it can be modeled geometrically
+barplot(table(summits_b4_death),
+        main = "Number of Succesful Summits Before Death",
+        sub = "(Inlcudes Final Summit)",
+        xlab = "Number of Summits",
+        ylab = "Frequency",
+        col = "firebrick4")
+
+# bin the observed data so we have 10 or more observations per bin
+obs <- table(summits_b4_death); obs
+obs_bin <- obs
+obs_bin[5] <- sum(obs_bin[5:8]); obs_bin
+obs_bin <- obs_bin[1:5]; obs_bin
+
+# use fitdist to estimate the parameter for a geometric distribution based
+# on our data
+param <- fitdist(summits_b4_death, "geom", method = c("mle")); param
+p <- param[[1]]; p
+
+# bin the expected values the same way as the observed
+probs <- c(dgeom(0:3, p), 1 - pgeom(3,p)); sum(probs)
+exp_bin <- probs*length(summits_b4_death); exp_bin
+
+# looking at a side by side barplot, the observed values generally match quite
+# nicely with the expected values, so there is a good chance that this data
+# can in fact be modeled geometrically. We conduct a chi-square test to make sure
+barplot(rbind(obs_bin, exp_bin), 
+        beside = TRUE,
+        main = "Number of Succesful Summits Before Death",
+        sub = "(Inlcudes Final Summit)",
+        xlab = "Number of Summits",
+        ylab = "Frequency",
+        col = c("firebrick4", "cadetblue4"),
+        legend.text = c("Observed", "Expected"))
+
+# conduct chi-squre test
+ChiSq <-function(obs,exp){
+  sum((obs-exp)^2/exp)
+}
+Chistat <- ChiSq(obs_bin, exp_bin); Chistat
+# lose an extra degree of freedom for having estimated a parameter
+# 5 bins - 2 df = 5 df
+
+# Our p-value tells us there is a reasonable probability that the difference
+# between our observed and expected distributions is solely due to chance. i.e.
+# that our data can, in fact be modeled by a geometric distribution with p = .54
+pchisq(Chistat, 3, lower.tail = FALSE)
+
+# Using the parameter from the distribution, we can calculate the expected number
+# of summits that someone achieves before they die (if they die at all), and the
+# variance in number of summits
+1/p # expected value
+(1-p)/p^2 # variance
+
+
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+### analysis of summit times and deaths ###
+
+# While getting to the summit (and returning safely) is the ultimate goal of
+# any expedition, what time the summit is reached also of great importance.
+# We examine whether summit times follow any kind of continuous probability distribution
+# It would make sense for the data to follow a gamma distribution, since climbers
+# generally try to summit around late morning or early afternoon, with fewer 
+# people summiting late in the day, so we would expect a right skewed distribution
+# with a peak that rises somewhat rapidly and falls off exponentially.
+
+# dataset of only people who successfully summit 
+summiters <- climbers %>% 
+  filter(msuccess == TRUE,
+         !is.na(msmttime1)) %>%
+  mutate(msmttime1 = as.numeric(msmttime1)) %>%
+  # put summit time in terms of hours/fractions of hours
+  mutate(remainder = msmttime1 %% 100,
+         hour = (msmttime1 - remainder) / 100,
+         frac = remainder / 60,
+         summit_time = hour + frac) %>%
+  select(peakid, peakname, summit_time, death)
+
+
+# we check a histogram of summit times for all 8 peaks combined, and it looks
+# like it may follow a gamma distribution
+hist(summiters$summit_time, 
+     main = "Histogram of Summit Times for All Peaks",
+     xlab = "Summit Time (24 Hour Clock)",
+     border = "white",
+     col = "cadetblue4",
+     xlim = (c(0,24)),
+     probability = TRUE, breaks = "FD")
+
+
+### try to fit a gamma distribution ###
+# this function takes the summit time data for whichever mountain is passed
+# into it and tests whether the summit times fits a gamma distribution by:
+# 1) estimating the parameters of a theoretical gamma distribution based on the data
+# 2) outputting a histogram of the data with a density curve for the theoretical distribution
+# 3) comparing the actual data to the theoretical distribution using a decile comparison approach and chi-square
+
+smttime_gamma <- function(peak) {
+  
+  # vector of summit times
+  stime <- summiters %>% filter(peakid %in% c(peak)) %>% pull(summit_time)
+  sname <- summiters %>% filter(peakid %in% c(peak)) %>% pull(peakname) %>% unique()
+  
+  # use fitdist to estimate the parameters #  
+  param <- fitdist(stime, "gamma", method = c("mle")); param
+  shape <- param$estimate[[1]]; shape
+  rate <- param$estimate[[2]]; rate
+  
+  # for the histogram titles
+  if(peak == all_peaks) {
+    sname <- "All Peaks"
+  } else {
+    sname <- sname
+  }
+  
+  # histogram and density curve #
+  hist(stime, 
+       main = paste0("Histogram of Summit Times for ", sname),
+       xlab = "Summit Time (24 Hour Clock)",
+       border = "white",
+       col = "cadetblue4",
+       xlim = (c(round(min(stime))-1,round(max(stime))+1)),
+       probability = TRUE, breaks = "FD")
+  
+  curve(dgamma(x, shape = shape, rate = rate), add = TRUE, col = "red")
+  
+  
+  # check fit by comparing deciles #
+  # bins
+  bins <- qgamma(0.1*(0:10), shape = shape, rate = rate); bins
+  bincode <- cut(stime, breaks = bins); table(bincode)
+  
+  # check we have the same number of observations
+  sum(table(bincode)); length(stime)
+  
+  # observed distribution by bin
+  observed <- as.vector(table(bincode)); observed
+  # expected has equal number in each decile
+  expected <- rep(sum(observed)/10, 10); expected
+  
+  # compute chi-sq stat, subtract 2 degrees of freedom for two parameters
+  chisq <- sum((observed-expected)^2/expected); chisq
+  pvalue <- pchisq(chisq, df = 7, lower.tail = FALSE); pvalue
+}  
+
+# we apply the function to each individual peak, and to the collection of all 8
+
+smttime_gamma("CHOY")
+smttime_gamma("EVER")
+smttime_gamma("MANA")
+smttime_gamma("LHOT")   ### LHOTSE summit times can be modeled by a gamma dist
+smttime_gamma("DHA1")
+smttime_gamma("ANN1")
+smttime_gamma("KANG")
+smttime_gamma("MAKA")
+smttime_gamma(all_peaks)
+
+# In the end, it seems that at large summit times cannot reliably be modeled by 
+# a gamma distribution. Only one mountain, Lhotse, returned a p-value large 
+# enough to suggest that the data may come from a gamma distribution. 
+
+
+################################################################################
+# Miscellaneous Analysis
+################################################################################
+
+##############################################
+### permutation test summit time and death ###
+##############################################
+
+# Did people who ultimately died on a climb summit later than those who survived?
+# We would expect the answer to be yes. In high altitude mountaineering, teams
+# decide on a "turnaround time" when making their final push to the summit. As
+# the name suggests, the turnaround time is the time at which climbers should
+# start their decent back to their last camp, regardless of how close to the top
+# they may be. The exact turnaround time depends on the season, expected weather,
+# daylight, and other factors. But generally, the time is set so that climbers
+# will have enough time to return to the camp from the summit before nightfall
+# or afternoon storms set in. For example, the typical turnaround time for Everest
+# during the busy spring season is around 2pm. Ignoring the turnaround time can,
+# and has, had famously disastrous results. 
+
+
+# First we take a graphical approach, with a boxplot of summit times for all
+# peaks, by whether or not the climber survived or died. 
+# The boxplot suggests that there may be significant differences in the summit
+# times of surviving and dying climbers. The median for climbers who survived
+# is around 8am, while for those who died it is around noon or 1pm. A large
+# majority of the interquartile range for those who died is above the IQR for
+# survivors, and only outliers amongst survivors column have summit times
+# later than the 75th percentile of those who died. 
+
+ggplot(data = summiters, aes(x = death, y = summit_time)) + 
+  geom_boxplot(fill = "cadetblue4") + 
+  scale_x_discrete(labels = c("TRUE" = "Died", "FALSE" = "Survived")) +
+  # geom_jitter(position = position_jitter(.2), size = .1, color = "red") +
+  # stat_summary(fun = mean, geom = "point", shape = 23, size = 4) +
+  labs (
+    title = "Summit Times By Mortality",
+    subtitle = "(All Peaks)",
+    x = "Climber Mortality Outcome",
+    y = "Summit Time (24 hour clock)"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = .5),
+    plot.subtitle = element_text(size = 14, hjust = .5),
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, color = "black")
+  ) +
+  coord_flip()
+
+
+
+# next, we conduct a permutation test to check whether the difference in mean
+# summit times between surviving climbers and dying climbers is significant
+
+# split data into survivors and not
+id_death <- which(summiters$death == "TRUE")
+dead <- summiters[id_death,]
+alive <- summiters[-id_death,]
+
+# means for each group
+mean_dead <- mean(dead$summit_time); mean_dead
+mean_alive <- mean(alive$summit_time); mean_alive
+
+# observe about a 4 hour difference in means, which seems large
+observed <- mean_dead - mean_alive; observed
+
+# permutation test
+N <- 1000
+diffs <- numeric(N)
+for (i in 1:N){
+  Death <- sample(summiters$death)   #permuted mortality column
+  DeadAvg <- sum(summiters$summit_time*(Death == "TRUE"))/sum(Death == "TRUE")
+  AliveAvg <- sum(summiters$summit_time*(Death == "FALSE"))/sum(Death == "FALSE")
+  diffs[i] <- DeadAvg - AliveAvg
+}
+mean(diffs) # should be, and is, close to zero
+
+
+# calculating the p-value gives us a significant result. There is only about a 
+# 0.001 probability that a difference in means this large would arise by chance.
+# So, we conclude that climbers who ultimately died summit the mountain significantly
+# later in the day than those who survive, as was expected.
+pvalue <- (sum(diffs >= observed)+1)/(N+1); pvalue
+
+
+
+################################################################################
+# Oxygen analysis
+################################################################################
+
+# Altitudes above 8000m are referred to as the "death zone" in mountaineering,
+# because the concentration of oxygen in the air is not high enough to sustain
+# life for extended periods of time. This severe lack of oxygen leads to impaired 
+# decision making, deteriorating 
+# bodily functions, and puts climbers at greater risk of deadly pulmonary or 
+# cerebral edema. And as the name implies, too long in the death zone ultimately
+# ha only one outcome. Some climbers choose to brave these dangers head on,
+# relying on incredible fitness, speed, and climbing experience to get them up to the summit
+# and down out of the death zone quickly. However, supplemental oxygen has been
+# used for decades by high altitude mountaineers to combat the effects of high
+# altitude and extend the amount of time they can spend in the death zone. 
+# Supplemental oxygen makes climbing at higher altitudes much easier, and much
+# safer, which is why we fully endorse its use here at Otzi's Adventures.
+
+# In this section, we will analyze the many impacts that the use (or lack thereof)
+# that supplemental oxygen has on climber outcomes.
+
+
+# We start with a simple regression of the number of successful summits on the 
+# number of climbs someone goes on, and examine the slope of the line for three
+# groups: those who always use oxygen, those who never use oxygen, and those
+# who use oxygen some of the time
+
+# create a dataframe which identifies the three groups
+o2_success <- climbers_unique %>%
+  mutate(o2_use = case_when(o2_ratio == 1 ~ "Oxygen Always Used",
+                            o2_ratio == 0 ~ "Oxygen Never Used",
+                            TRUE ~ "Oxygen Sometimes Used")) %>%
+  select(climb_id, n_climb, n_success, o2_use, o2_ratio) 
+
+# we see that never using oxygen and always using oxygen make up the majority of the data
+table(o2_success$o2_use)
+
+# The first regression shows that, for people who use supplemental oxygen, for every 
+# additional climb they go on, they can expect to summit .9 mountains. i.e. if
+# someone goes on 10 climbs, we expect them to summit 9 peaks
+lm.o2_used <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Always Used"))
+summary(lm.o2_used)
+
+# However, for those that don't use supplemental oxygen, we only expect .35 
+# summits per climb, or between 3 and 4 summits per every 10 climbs
+lm.o2_notused <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Never Used"))
+summary(lm.o2_notused)
+
+# while those that use oxygen some for some fraction of their overall
+# climbs, they can expect to summit about 7 mountains per 10 climbs
+lm.o2_sometimes <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Sometimes Used"))
+summary(lm.o2_sometimes)
+
+
+# binning oxygen use into 3 distinct groups lends itself nicely to a 
+# visual comparison of the regression lines. Here we can see the 
+# disparity in the slope between the three groups
+ggplot(data = o2_success, aes(x = n_climb, y = n_success, color = o2_use, shape = o2_use)) +
+  
+  geom_point( size = 2) + 
+  
+  geom_smooth(method = lm, se = FALSE, fullrange = TRUE, size = .8) +
+  
+  scale_color_manual(values = c("cadetblue4", "firebrick4", "azure4")) +
+  
+  scale_shape_manual(values = c(19, 19, 24)) + 
+  
+  labs (
+    title = "Summit Success by Oxygen Use Over Multiple Climbs",
+    subtitle = "(All Peaks)",
+    x = "Number of Climbs",
+    y = "Number of Succesful Summits"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = .5),
+    plot.subtitle = element_text(size = 14, hjust = .5),
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, color = "black"),
+    legend.title = element_blank()
+  ) 
+
+
+# however, to truly capture the impact that oxygen use has on number of summits
+# reached in a linear regression model setup, we should control for other factors, 
+# and enter our oxygen use ratio as its own variable, rather than use it for
+# conditional grouping
+# here we estimate the number of successful summits, with oxygen use ratio as
+# our variable of interest, which we expect to enter positively. We control 
+# for number of climbs, the age and sex of the climber, and whether that climber
+# died
+lm.success <- lm(n_success ~ o2_ratio + n_climb + died + calcage + sex, data = climbers_unique)
+summary(lm.success)
+
+# with this, we see again the power of supplemental oxygen use in helping
+# climbers summit mountains, as our oxygen use ratio enters the most positively
+# into our regression, even more so than the number of climbs performed.
+# The dummy variable for whether a climber died or not tells us, as expected
+# that if a climber dies they summit fewer mountains overall.Age enters 
+# negatively as well, though the coefficient is minuscule. Likewise men have
+# a slight advantage over women
+
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+
+# we can use logistic regression to estimate the impact that oxygen use has
+# on the odds of summiting or dying. 
+
+# extract data for summit success, death, and oxygen use ratio
+# note that these are aggregates over all climbs for one particular climber,
+# so summited is whether a climber ever summited (1) or not (0). Likewise
+# for death
+summited <- climbers_unique$summited
+died <- climbers_unique$died
+o2_ratio <- climbers_unique$o2_ratio
+
+### oxygen use and summiting ###
+# plot oxygen use against whether climber ever successfully summited
+plot(o2_ratio, summited,
+     main = "Oxygen Use Impact on Odds of Summiting",
+     xlab = "Oxygen Use Ratio",
+     ylab = "Summited at Least One Peak")
+
+# use log likelihood function to estimate the parameters
+MLL<- function(alpha, beta) {
+  -sum( log( exp(alpha+beta*o2_ratio)/(1+exp(alpha+beta*o2_ratio)) )*summited
+        + log(1/(1+exp(alpha+beta*o2_ratio)))*(1-summited) )
+}
+
+# fit the model with initial guess of alpha = 0, beta = 0
+results<-mle(MLL, start = list(alpha = 0, beta = 0)) 
+results@coef
+# plot the regression curve
+curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+
+# We see from the curve that as a climbers oxygen use ratio increases, so
+# to do their odds of having summited at least one mountain
+# our results agree with R's built in function, and we even see that the
+# oxygen use ratio significantly increases the log odds of summiting
+summary(glm(summited~o2_ratio, family = "binomial", data = climbers_unique))
+
+
+### oxygen use and death ###
+plot(o2_ratio, died,
+     main = "Oxygen Use Impact on Odds of Dying",
+     xlab = "Oxygen Use Ratio",
+     ylab = "Died")
+
+# use log likelihood function to estimate the parameters
+MLL<- function(alpha, beta) {
+  -sum( log( exp(alpha+beta*o2_ratio)/(1+exp(alpha+beta*o2_ratio)) )*died
+        + log(1/(1+exp(alpha+beta*o2_ratio)))*(1-died) )
+}
+
+# fit the model with initial guess of alpha = 0, beta = 0
+results<-mle(MLL, start = list(alpha = 0, beta = 0)) 
+results@coef
+# plot the regression curve
+curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+
+# here the curve is more difficult to see, but there does appear to be a slightly
+# negative slope, and our beta coefficient tells us that oxygen use
+# decreases the log odds of dying. And we see from using R's built in
+# logistic regression function that oxygen use again is significant
+summary(glm(died~o2_ratio, family = "binomial", data = climbers_unique))
 
 
 
