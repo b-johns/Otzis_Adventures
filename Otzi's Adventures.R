@@ -1,6 +1,9 @@
 ################################################################################
 # Otzi's Adventures: helping you achieve Himalaya supremum in a compact budget
 ################################################################################
+# Install packages
+install.packages("survival")
+install.packages("survminer")
 
 # Load libraries
 library(dplyr)
@@ -10,6 +13,9 @@ library(fitdistrplus)
 library(tidyverse)
 library(stats4)
 select <- dplyr::select
+library(survival)
+library(readr)
+library(survminer)
 
 # Load data
 df <- read.csv('climbers_full.csv')
@@ -58,6 +64,92 @@ climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
 
 
 all_peaks <- climbers$peakid %>% unique(); all_peaks
+
+## Descriptive Statistics of Climbing Data
+# Read in dataframe 
+climbers_full <- read_csv("Downloads/climbers_full.csv")
+
+attach(climbers_full)
+# Climbers-Specific 
+  # Sex
+  table(sex)
+  table(sex)/length(sex) # About 90% of climbers to date are male. 
+  # Age
+  table(calcage) # looks like we need to convert values of 0 to missing data 
+  hist(calcage) # The majority of climbers are mid-working age adults. 
+  # Citizen 
+  table(citizen) # This is certainly freetext and not standardized. 
+  # Status 
+  table(status) # Again a freetext field, but we see the majority are labled as  "Climbers", "H-A Worker", or "Leader"
+  # Leader
+  table(leader)
+  table(leader)/length(leader) # About 13% of climbers are considered leaders of the expedition. 
+# Expedition 
+  # Peak 
+  table(peakid)
+  table(peakid)/length(peakid) # # The majority of climbers are climbing Everest (~52%), followed by Manaslu (~17%), and Cho Oyu (~13%).
+  # Year
+  table(myear)
+  table(myear)/length(myear) # Our observations are relatively well distributed across the 11 years of data. 
+  # Season
+  table(mseason)
+  table(mseason)/length(mseason) # 72% of climbers climb in the spring and 28% climb in the fall. Almost no one attempts to climb in summer (monsoon season) or winter.
+  # Personal High Point
+  hist(mperhighpt) # looks like we need to convert values of 0 to missing data 
+  # We can tell that not all climbers reach the summit since our dataset only contains 8000m peaks, and we have personal high points that are sub-8000m. 
+  # Summit Time 
+  hist(as.numeric(msmttime1)) # Looks like most climbers that summit do so in the early morning to mid-morning. 
+# Complications
+  # Death
+  table(death)
+  table(death)/length(death) # ~1% mortality rate in observations. This is good news for climbers, but might make it difficult to do any analyses that compare deaths.
+  # Reason for Death 
+  table(deathtype) # Need to convert to factor with factor labels. There is decent variation in death type but a large number of deaths attributed to avalanche (apparently there was a historic avalanche on Everest in this time period).
+  # Injury
+  table(injury)
+  table(injury)/length(injury) # ~1.6% morbidity rate in observations 
+  # Injury Type 
+  table(injurytype) # Need to convert to factor with factor labels. Exposure is the most common injury experienced. 
+
+## Data Cleaning 
+# Change various parts of dataframe based off exploratory analyses 
+climbers_full <- climbers_full %>%
+  dplyr::mutate(calcage = ifelse(calcage == 0, NA, calcage), 
+                mperhighpt = ifelse(mperhighpt == 0, NA, mperhighpt),
+                mperhighpt = ifelse(mperhighpt > 8167 & peakid == "DHA1", 8167, mperhighpt),
+                mperhighpt = ifelse(mperhighpt > 8849 & peakid == "EVER", 8849, mperhighpt),
+                deathtype = ifelse(deathtype == 0, NA, deathtype), 
+                injurytype = ifelse(injurytype == 0, NA, injurytype))
+
+climbers_full$deathtype <- climbers_full$deathtype %>%
+  factor(levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 
+         labels=c("AMS", "Exhaustion", "Exposure", "Fall", "Crevasse", "Icefall", "Avalanche", "Falling Rock/Ice", "Disappearance", "Illness", "Other", "Unknown") )
+
+climbers_full$injurytype <- climbers_full$injurytype %>%
+  factor(levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 
+         labels=c("AMS", "Exhaustion", "Exposure", "Fall", "Crevasse", "Icefall", "Avalanche", "Falling Rock/Ice", "Disappearance", "Illness", "Other", "Unknown") )
+
+# Create additional variables from existing data
+climbers_full <- climbers_full %>%
+  dplyr::mutate(age_grp = case_when(calcage < 18 ~ 1, # standardized age groups
+                                    calcage >= 18 & calcage < 35 ~ 2,
+                                    calcage >= 35 & calcage < 49 ~ 3,
+                                    calcage >= 50 & calcage < 65 ~ 4, 
+                                    calcage >= 65 ~ 5)) %>%
+  group_by(expid) %>%
+  mutate(exp_members = n(),
+         exp_sex = mean(sex == "M"), # proportion of expedition members that are male
+         exp_retire = mean(age_grp == 5), # proportion of expedition members that are retirement age
+         exp_wrk_age = mean(age_grp == 2 | age_grp == 3 | age_grp == 4), # proportion of expedition members that are working age
+         exp_leaders = mean(leader == TRUE), # proportion of expedition members that are leaders
+         exp_max_ht = max(mperhighpt)) %>% # highest point reached by anyone on the expedition
+  ungroup %>%
+  dplyr::mutate(rel_max_ht = mperhighpt/exp_max_ht) # each member's high point relative to highest point reached by anone on the expedition
+
+climbers_full$age_grp <- climbers_full$age_grp %>%
+  factor(levels = c(1, 2, 3, 4, 5),
+         labels = c("<18", "18-34", "35-49", "50-64", "65+"))
+
 
 
 ################################################################################
@@ -301,9 +393,129 @@ smttime_gamma(all_peaks)
 # enough to suggest that the data may come from a gamma distribution. 
 
 
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+
+# Let's try to model a variable that are measured on a scale between 0 and 1 with a beta distribution
+# Proportion of Males on Expedition
+exp_sex_mu = mean(climbers_full$exp_sex); exp_sex_mu # mean
+exp_sex_var = var(climbers_full$exp_sex); exp_sex_var # variance
+
+# Construct alpha and beta from mean and variance 
+alpha <- ( (exp_sex_mu^2 - exp_sex_mu^3)/exp_sex_var ) - exp_sex_mu; alpha # 4.6753
+beta <- (alpha/exp_sex_mu) - alpha; beta # 0.5126206
+
+# Overlay beta distribution over actual data 
+hist(climbers_full$exp_sex, prob=TRUE, main = "Histogram", xlab = "Proportion of Expedition Members who are Male")
+# Expeditions are highly concentrated with male climbers. 
+curve(dbeta(x, alpha, beta), add = TRUE, col = "red")
+# The curve of the beta distribution appears to approximately fit the distribution. 
+
+# Let's run chi-sq analysis to see exactly how well the beta distribution might fit.
+beta_deciles <- qbeta(seq(0, 1, 0.01), alpha, beta); beta_deciles
+
+# We have lots of observations so we can have a large number of bins and still have very large expected counts. 
+bins <- numeric(100)
+
+# Observed counts in each bin
+for (i in 1:100) {
+  bins[i] <- sum((climbers_full$exp_sex >= beta_deciles[i] & climbers_full$exp_sex < beta_deciles[i+1]))
+}
+bins
+
+# Expected counts in each bin 
+exp_counts <- rep(length(climbers_full$exp_sex)/100, 100); exp_counts
+
+# Calculate chi-squared statistic 
+chi_sq_stat <- sum( (bins-exp_counts)^2 / exp_counts ); chi_sq_stat # 15302.89, offhand this appears large 
+pchisq(chi_sq_stat, df=97, lower.tail = FALSE) # df = 100 bins - 2 parameters - 1 calculation of chi sq stat
+# Our p-value is so small that it is calculated as 0. This means that the beta distribution does not appropriately model the distribution of proportion of expedition members who are male. 
+
+# We can confirm this result with the Q-Q plot 
+# Calculate deciles from actual data 
+data_deciles <- quantile(climbers_full$exp_sex, seq(0, 1, 0.01), type=2); data_deciles
+
+# Plot deciles of beta distriubtion against deciles from data 
+plot(beta_deciles[1:100], data_deciles[1:100], xlim=c(0,1), ylim=c(0,1), xlab = "Deciles of Beta Distribution", ylab="Deciles of Data", main = "Q-Q Plot")
+y <- function(x) x
+curve(y, to=1, col="red", add=TRUE)
+# Our data points of the deciles aren't linear, so our p-value and conclusion makes sense. 
+# It is likely that the reason the beta distribution is failing to be appropriate is because 36% of our observations are at 1 and because though the proportion is a continuous variable, to some extent it is taking discrete values.
+
+
+
 ################################################################################
 # Miscellaneous Analysis
 ################################################################################
+
+#############################################
+### Adapting a survival plot to understand our data 
+#############################################
+
+## Survival Plots 
+
+# We can repurpose an epidemological plot, called "Survival Plot." This will provide us a graphical representation of how high climbers make it up the mountain. 
+ever <- climbers_full %>%
+  filter(peakid == "EVER" & mperhighpt != 0) %>% # We will focus on climbers on Everest who have a reported personal high climbing point.
+  dplyr::mutate(status = 1)
+
+hist(ever$mperhighpt) # Most of our climbers get very close to the summit of Everest. 
+table(ever$mperhighpt)
+
+# For all climbers
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ 1, data = ever), 
+  main = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Looks like about 75% of our sampled climbers are reaching the peak of Everest. 
+
+# By sex
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(sex), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Looks like females reach higher points of Everest at slighly lower rates than males. 
+
+summary(survfit(Surv(mperhighpt, status) ~ strata(sex), data = ever), times = 8000)
+
+# By age-groups
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(age_grp), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# It looks like climbing success decreases as you increase the age group. Those under 18 are the most sucessful with over 80% summiting (though this is likely a selection effect), but those over 65 summit at about a rate of 25%
+
+# By leader status
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(leader), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Leaders have about a 60% probability of summiting, while non-leaders have about a 75% probability. I wonder if there is a practical reason for this, like leaders do many trips so don't need to summit everytime or leaders are responsible for straglers on the expedition who can't make it to the peak.
+
+# By year 
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(myear), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# No one summits in 2015 because of a major avalanche on Everest. Great to see that our data is reflecting known realities.
+
+# By season
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(mseason), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# No only is the spring the most popular season to climb, it appears to the only season where we observe people actually summitting. 
 
 ##############################################
 ### permutation test summit time and death ###
@@ -387,6 +599,60 @@ mean(diffs) # should be, and is, close to zero
 # later in the day than those who survive, as was expected.
 pvalue <- (sum(diffs >= observed)+1)/(N+1); pvalue
 
+##############################################
+### Climbing Success of Busines People vs. Alpinists ###
+##############################################
+
+# Let's compare the success rates of summitting for business people vs professional alpinists 
+# Using simulation approach 
+
+# Use fuzzy text matching on the free-text occupation
+biz <- agrep("business", climbers_full$occupation)
+alp <- agrep("alpine", climbers_full$occupation)
+
+climbers_full <- climbers_full %>%
+  mutate(index = row_number()) 
+
+# Create datasets of just business people and just professional alpinists
+businesspeople <- climbers_full %>%
+  subset(index %in% biz) %>%
+  mutate(occ = "business")
+samp_size <- nrow(businesspeople)
+alpinists <- climbers_full %>%
+  subset(index %in% alp) %>%
+  mutate(occ = "alpinist")
+
+# Crate dataset with both businesspeople and alpinists
+occ <- rbind(businesspeople, alpinists)
+occ_length <- nrow(occ)
+
+# Construct observed difference in avg proportion of business people who summit and avg proportion of alpinists who summit
+BizAvg <- mean(as.numeric(businesspeople$msuccess)); BizAvg # 41.7% of business people summit 
+AlpAvg <- mean(as.numeric(alpinists$msuccess)); AlpAvg # 47.4% of alpinists summit 
+obs <- BizAvg - AlpAvg; obs # Businesspeople summit at a rate that is 5.7% lower than alpinists. 
+
+# Permutation test
+N <- 10000
+diffs <- numeric(N)    #empty vector to hold difference in percent success
+for (i in 1:N){
+  index <- sample(occ_length, samp_size)
+  bizavg <- mean(as.numeric(occ[index,]$msuccess))
+  alpavg <- mean(as.numeric(occ[-index,]$msuccess))
+  diffs[i] = bizavg - alpavg 
+}
+
+# Plot permutation results 
+hist(diffs, main = "Histogram of Simulated Rate Differences", xlab= "Differnce in Summit Rate for Business People vs Alpinists")
+abline(v=obs, col="red") # observed 
+# Our observed rate difference is certainly on the tail of the histogram. 
+(sum(abs(diffs) > abs(obs))+1)/(N+1)
+# Only 3.7% of our simulated rate differences are as great in magnitude as our observed difference. At at 5% significance level, we would reject the null hypothesis that there is no difference in summitting rates between business people and alpinists. 
+(sum(diffs < obs)+1)/(N+1)
+# Ony 1.7% of our simulate rate differences are more negative that the observed difference. This would be a one-way t-test and provide evidence that business people summit at a lower than professional alpinists.
+
+# Let's compare our simulation result against the built-in chi squared function 
+chisq.test(occ$occ, occ$msuccess, correct=F)
+# Our p-value is 0.03678, so our results and conclusions match!
 
 
 ################################################################################
@@ -555,6 +821,206 @@ curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@co
 # decreases the log odds of dying. And we see from using R's built in
 # logistic regression function that oxygen use again is significant
 summary(glm(died~o2_ratio, family = "binomial", data = climbers_unique))
+
+#-----------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------#
+### Weather Data 
+
+# Barometric pressure affects oxygen saturation: specifically, lower barometric pressure reduces oxygen saturation. So, analyzing the weather patterns at Everest's basecamp can help us identify times during the hiking season where climbers will potentially require greater supplemental oxygen. 
+
+# Load dataset with hourly weather readings from Everest basecamp starting Nov 1, 2019 to Jun 30, 2021
+basecamp <- read_csv("Downloads/Base_Camp/Base_Camp_20210630.csv") 
+
+# Reformat and rename variables 
+basecamp <- basecamp %>%
+  mutate(time = as.POSIXct(TIMESTAMP, format = "%m/%d/%Y %H:%M")) %>% # converts character to date-time 
+  rename(humid = RH, # rename columns to more descriptive names 
+         temp = T_HMP, 
+         pressure = PRESS, 
+         precip = PRECIP)
+
+# Create new variables from our date-time variable 
+basecamp <- basecamp %>%
+  mutate(date = format(time, "%m/%d/%Y"),
+         month = format(time, "%m"), 
+         day = format(time, "%d"), 
+         year = format(time, "%Y"), 
+         hr = format(time, "%H"),
+         time_24 = format(time, "%H:%M"))
+
+# Construct a dataset with just the spring weather observations (2020 & 2021)
+spring_weather <- basecamp %>% 
+  filter(month == "03" | month == "04" | month == "05") %>% # the most popular season for expeditions is spring: March - May 
+  group_by(date) %>%
+  mutate(total_precip = sum(precip)) %>% # total precipitation over the course of a day 
+  ungroup %>%
+  mutate(rainy_day = as.numeric(total_precip > 0), # rainy day if have any precipitation 
+         high_humidity = as.numeric(humid > mean(humid))) # high humidity day if above average humidity 
+
+# Let's see if there are other weather variables that might be easier to measure/predict that help us predict barometric pressure
+cor(spring_weather$temp, spring_weather$pressure) # Correlation coefficient is almost 0.58 - that's pretty strong. Temperature might serve as a good predictor for barometric pressure.
+cor(spring_weather$humid, spring_weather$pressure)
+cor(spring_weather$high_humidity, spring_weather$pressure) # Both of the correlation coefficients for humidity-related variables are under 0.20, might not be the best to start there with creating a model.
+
+# Using a projection matrix approach, let's find the coefficients for a linear regression of barometric pressure on temperature
+
+m1 <- rep(1, length(spring_weather)) # vector of 1s 
+m2 <- spring_weather$temp # temperature 
+m3 <- spring_weather$pressure # pressure 
+
+A <- cbind(m1, m2) # vector of 1s, temperature
+A_t <- t(A) # transpose of A
+B <- A_t%*%A # A_t %*% A
+B_inv <- solve(B); B_inv # invert B 
+coeff <- B_inv%*%A_t%*%m3; coeff # coefficients come from B_inv %*% A_t %*% pressure
+b <- coeff[1,1]; b # intercept: 534.027. Interpretation: If it is 0 degrees Celsius, we expect the barometric pressure to be 534.027 hPa
+a <- coeff[2,1]; a # slope: 0.347086. Interpretation: For every 1 degree increase in temperature, we expect the barometric pressure to increase by 0.37 hPa.
+
+# Manual calculation of R^2
+pred_pressure <- b + a*spring_weather$temp
+spring_weather$resid_pressure = spring_weather$pressure - pred_pressure
+var_pred <- var(pred_pressure)
+var_obs <- var(spring_weather$pressure)
+var_pred/var_obs # We can explain about 34% of the variation in pressure by temperature. 
+
+# Let's check this against the built-in function
+summary(lm(pressure ~ temp, data = spring_weather)) # Our coefficients and R-squared values match those we manually calculated!
+
+# Let's plot the data and the regression line we calculated 
+ggplot(data = spring_weather, aes(x = temp, y = pressure)) + 
+  geom_point() + 
+  labs(title = "Spring Temperatures and Barometric Pressure at Everest Basecamp",
+       x = "Temperature (degrees C)",
+       y = "Barometric Pressure (hPa)") + 
+  geom_abline(intercept = b, slope = a, color="red", size=1.5)
+# Our regression line seems to be capturing the general relationshp between temperature and barometric pressure. 
+
+# Let's double check that a linear relationship is appropriate by examining the residual plot. 
+ggplot(data = spring_weather, aes(x = temp, y=resid_pressure)) + 
+  geom_point() +
+  labs(title= "Residual Plot for Pressure ~ Temperature", 
+       x= "Temperature (degrees C)",
+       y = "Residual") + 
+  geom_hline(yintercept = 0, color ="blue")
+# Our residuals aren't necessarily evenly distributed across temperature values. We see some extreme negative residuals (<-5) only between -10 and 0 degrees C, and there is less variation in residual magntitude at the extremes of our temperature range. Nevertheless, the residual plot doesn't suggest that a linear model isn't appropriate.
+
+# Let's try adding a second predictor to our model. 
+
+# Both of our humidity-related variables had much weaker correlation to pressure. But, we can test adding one of them to our model. 
+# First, let's check that we would be adding a second predictor that is not highly correlated with temperature, that would pose the issue of multi-colinearity.
+cor(spring_weather$humid, spring_weather$temp)
+cor(spring_weather$high_humidity, spring_weather$temp) # Neither humidity measure appears to be correlated with temperature. 
+
+# Okay, so let's try adding a second predictor variable that is a binary variable: high_humidity.
+
+# Because we are using a factor variable, it is easy to add a visualization of a 3rd variable. We can start here to see what results we might expect by following the same steps as above.
+ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high_humidity))) + 
+  geom_point() + 
+  labs(title = "Spring Temperatures and Barometric Pressure at Everest Basecamp",
+       x = "Temperature (degrees C)",
+       y = "Barometric Pressure (hPa)",
+       color = "High Humidity") 
+# It's not readily apparent that we should expect high humidity to have statistical significance as a predictor in our model. There is similar variation in both temperature and barometric pressure for high humidity and non-high humidity days.
+
+# Using projection matrix, 
+m1 <- rep(1, length(spring_weather))
+m2 <- spring_weather$temp
+m3 <- spring_weather$high_humidity
+m4 <- spring_weather$pressure
+
+A <- cbind(m1, m2, m3)
+A_t <- t(A)
+B <- A_t%*%A
+B_inv <- solve(B); B_inv #
+coeff <- B_inv%*%A_t%*%m4; coeff 
+b <- coeff[1,1]; b # Intercept: 533.6646. Interpretation: If it is 0 degrees Celsius and non-high humidity, we expect the barometric pressure to be 533.6646 hPa.
+a1 <- coeff[2,1]; a1 # Coefficient on temperature: 0.34624 . Interpretation: For every 1 degree increase in temperature, holding high humidity status constant, we expect the barometric pressure to increase by 0.35 hPa.
+a2 <- coeff[3,1]; a2 # Coefficient on high humidity: 0.6470104. Interpretation: Holding temperature constant, we expect high-humidity observations to have barometric pressure 0.65 hPa higher than low-humidity observations.
+
+# Manual calculation of R^2
+pred_pressure <- b + a1*spring_weather$temp + a2*spring_weather$high_humidity
+spring_weather$resid_pressure = spring_weather$pressure - pred_pressure
+var_pred <- var(pred_pressure)
+var_obs <- var(spring_weather$pressure)
+var_pred/var_obs # We can explain about 35% of the variation in pressure by temperature and high humidity status. This is only 1% higher than if we use only temperature, indicating that we probably shouldn't be using high humidity as a predictor.
+
+summary(lm(pressure ~ temp + high_humidity, data = spring_weather)) # All our coefficients and R-square calculations match the built-in function. 
+# It is interesting here that we find the coefficient on high-humidity to be statistically significant with a t value of 11.25. The plot doesn't provide convincing evidence that this might the case, and we end up seeing that high humidity is a weak predictor (both in correlation w/ our response of barometric pressure & contribution to R-squared).
+
+# Since temperature can serve as a predictor for barometric pressure, let's see if we can model temperatures over the spring season.
+temp_2020 <- spring_weather[1:2207,]$temp # temperatures in 2020
+temp_2021 <- spring_weather[2208:4414,]$temp # temperatures in 2021
+avg_temp <- (temp_2020 + temp_2021)/2 # take the average of our 2 years of observations 
+month <- spring_weather[1:2207,]$month 
+day <- spring_weather[1:2207,]$day
+hr <- spring_weather[1:2207,]$hr
+avg_spring_temp <- cbind(month, day, hr, avg_temp) # dataframe with avg temp at date and time (i.e. avg temp on April 1 at 06:00)
+
+# We can use Fourier analysis to create models that match our temperature data to varying extents. 
+
+nhours <- nrow(avg_spring_temp); nhours # 2207 
+plot(1:nhours, avg_temp, type = "l", main = "Average temperatures in Spring", xlab="Hour index", ylab="Average temperature (in degrees C)") # line plot of temperature over the spring 
+# It looks like we are picking up mostly the daily variation in temperature but we can see that temperatures definitely rise as we get to the end of the spring season.
+
+# FUNCTIONS
+# Cosine and sine functions with m periods in 2207 hours
+myCos <- function(m) cos((1:nhours)*m*2*pi/nhours)
+mySin <- function(m) sin((1:nhours)*m*2*pi/nhours)
+# Fourier coefficient a_m
+coeffA <- function(m){
+  sum(avg_temp*2*myCos(m)/nhours)
+}
+# Fourier coefficient b_m
+coeffB <- function(m){
+  sum(avg_temp*2*mySin(m)/nhours)
+}
+# Takes a set number of coefficients and overlays the Fourier plot 
+plot_Fourier <- function(ncoeff) {
+  FourierA <- sapply(1:ncoeff,coeffA)
+  FourierB <- sapply(1:ncoeff,coeffB)
+  #Find the amplitude of the sum of the cosine and sine terms
+  Fourier <- sqrt(FourierA^2+FourierB^2)
+  Fourier
+  recon <- mean(avg_temp)
+  for (m in 1:ncoeff) {
+    recon <- recon + FourierA[m]*myCos(m)+FourierB[m]*mySin(m)
+  }
+  plot(1:nhours, avg_temp, type = "l", main = "Average temperatures in Spring", xlab="Hour index", ylab="Average temperature (in degrees C)")
+  points(1:nhours,recon, type = "l", col = "red",lwd = 2) 
+}
+
+# Evaluate the first 100 coefficients to see which ones might be the largest 
+#Evaluate ncoeff coefficients
+ncoeff <- 100
+FourierA <- sapply(1:ncoeff,coeffA)
+FourierB <- sapply(1:ncoeff,coeffB)
+#Find the amplitude of the sum of the cosine and sine terms
+Fourier <- sqrt(FourierA^2+FourierB^2)
+Fourier
+# The first three coefficients are all greater than 1 and then we have a large coefficient (~2.6) on the 92nd coefficient.
+
+# ncoeff = 1; The first Fourier coefficient is the largest 
+plot_Fourier(1) 
+# A single oscillation is not terrible, but we are overestimating early in the season and underestimating at the end of the season. 
+
+# ncoeff = 3; The first 3 Fourier coefficients are all large, and this would correspond to the 3 months of data. 
+plot_Fourier(3) 
+# We are now capturing the temperature trends at the start and end of spring. 
+
+# ncoeff = 13; Even though the 13th Fourier coefficient isn't large, there are approximately 13 weeks in the season so this would pick up weekly trends. 
+plot_Fourier(13) 
+
+# ncoeff = 92; The 92nd coefficient is large, reflecting the fact that there are 92 days of data and that daily variation is important.
+plot_Fourier(92) 
+# We are almost perfectly reflecting our data, though we look to be failing to reflect the full peak of temperature peaks in a day.
+
+# ncoeff = 200; Let's see if 200 coefficients gets us a perfect replication. 
+plot_Fourier(200)
+# Yes, 200 Fourier coefficients is enough to replicate the actual temperature data. 
+
+# For our purposes of using predicted temperatures to estimate barometric pressure and thus potential supplemental oxygen needs, we should either use the ncoeff = 3 or ncoeff = 13 models. 
+# Either way, we see that the lowest temperatures are expected earliest in the season (March into April). Thus, we would expect barometric pressure to be lowest in the early climbing season, so we should focus on selling supplemental oxygen in March/April rather than May. 
+
 
 
 
