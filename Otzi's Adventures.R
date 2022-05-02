@@ -396,8 +396,9 @@ smttime_gamma(all_peaks)
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
-# Let's try to model a variable that are measured on a scale between 0 and 1 with a beta distribution
-# Proportion of Males on Expedition
+# Let's try to model a variable with a beta distribution. 
+# For the beta distribution to be appropriate, a variable must be measured on a scale between 0 and 1. 
+# Proportion of Males on Expedition meets this criteria. 
 exp_sex_mu = mean(climbers_full$exp_sex); exp_sex_mu # mean
 exp_sex_var = var(climbers_full$exp_sex); exp_sex_var # variance
 
@@ -440,7 +441,7 @@ plot(beta_deciles[1:100], data_deciles[1:100], xlim=c(0,1), ylim=c(0,1), xlab = 
 y <- function(x) x
 curve(y, to=1, col="red", add=TRUE)
 # Our data points of the deciles aren't linear, so our p-value and conclusion makes sense. 
-# It is likely that the reason the beta distribution is failing to be appropriate is because 36% of our observations are at 1 and because though the proportion is a continuous variable, to some extent it is taking discrete values.
+# It is likely that the reason the beta distribution is failing to be appropriate is because 36% of our observations are at 1, which is the ceiling of the distribution. Also, though the proportion is a continuous variable, to some extent it is taking discrete values as the total number of members on an expedition are repeated (denominator) and the numerator of total number of males can only take on so many discrete values.
 
 
 
@@ -454,7 +455,7 @@ curve(y, to=1, col="red", add=TRUE)
 
 ## Survival Plots 
 
-# We can repurpose an epidemological plot, called "Survival Plot." This will provide us a graphical representation of how high climbers make it up the mountain. 
+# In an effort to utilize a different type of graphical representation, we can repurpose an epidemological plot, called "Survival Plot." This will provide us a graphical representation of the probability that climbers make it to any given point up Mt. Everest. 
 ever <- climbers_full %>%
   filter(peakid == "EVER" & mperhighpt != 0) %>% # We will focus on climbers on Everest who have a reported personal high climbing point.
   dplyr::mutate(status = 1)
@@ -477,7 +478,7 @@ ggsurvplot(
   title = "Climbing Everest",
   xlab = "Height (in m)", 
   ylab = "Overall probability")
-# Looks like females reach higher points of Everest at slighly lower rates than males. 
+# Looks like females reach higher points of Everest at slightly lower rates than males. 
 
 summary(survfit(Surv(mperhighpt, status) ~ strata(sex), data = ever), times = 8000)
 
@@ -515,7 +516,7 @@ ggsurvplot(
   title = "Climbing Everest",
   xlab = "Height (in m)", 
   ylab = "Overall probability")
-# No only is the spring the most popular season to climb, it appears to the only season where we observe people actually summitting. 
+# Not only is the spring the most popular season to climb, it appears to the only season where we observe people actually summitting. 
 
 ##############################################
 ### permutation test summit time and death ###
@@ -603,7 +604,8 @@ pvalue <- (sum(diffs >= observed)+1)/(N+1); pvalue
 ### Climbing Success of Busines People vs. Alpinists ###
 ##############################################
 
-# Let's compare the success rates of summitting for business people vs professional alpinists 
+# There are lots of different types of people who might want to climb the Himalyas. For instance, there are professional climbers who mountaineer all over the world and people who might only be interested in a Himalayan climb as a sign of achievement or "bucket-list" item.
+# So, let's compare the success rates of summitting by occupation (business people vs professional alpinists)
 # Using simulation approach 
 
 # Use fuzzy text matching on the free-text occupation
