@@ -55,7 +55,8 @@ climbers <- climbers_full  %>%
          n_success = sum(msuccess),
          summited = ifelse(n_success == 0, 0, 1),
          n_o2 = sum(mo2used),
-         o2_ratio = n_o2/n_climb) %>% 
+         o2_ratio = n_o2/n_climb,
+         main_season = ifelse(mseason == 1, 1, 0)) %>% 
   ungroup() 
 
 
@@ -110,7 +111,8 @@ attach(climbers_full)
   table(injury)/length(injury) # ~1.6% morbidity rate in observations 
   # Injury Type 
   table(injurytype) # Need to convert to factor with factor labels. Exposure is the most common injury experienced. 
-
+detach(climbers_full)
+  
 ## Data Cleaning 
 # Change various parts of dataframe based off exploratory analyses 
 climbers_full <- climbers_full %>%
@@ -221,7 +223,7 @@ pchisq(Chistat, 4, lower.tail = FALSE)
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
-# How about the number of summits a climber can expect to achieve before
+# But what about the number of summits a climber can expect to achieve before
 # they die? Let's see if this can be modeled geometrically.
 
 # take only the climbers who die, and extract the number of times they summit
@@ -295,7 +297,9 @@ pchisq(Chistat, 3, lower.tail = FALSE)
 # It would make sense for the data to follow a gamma distribution, since climbers
 # generally try to summit around late morning or early afternoon, with fewer 
 # people summiting late in the day, so we would expect a right skewed distribution
-# with a peak that rises somewhat rapidly and falls off exponentially.
+# with a peak that rises somewhat rapidly and falls off exponentially. We
+# also have only positive values in the data, matching the support
+# for the gamma distribution
 
 # dataset of only people who successfully summit 
 summiters <- climbers %>% 
@@ -320,8 +324,10 @@ hist(summiters$summit_time,
      xlim = (c(0,24)),
      probability = TRUE, breaks = "FD")
 
-
+#######################################
 ### try to fit a gamma distribution ###
+#######################################
+
 # this function takes the summit time data for whichever mountain is passed
 # into it and tests whether the summit times fits a gamma distribution by:
 # 1) estimating the parameters of a theoretical gamma distribution based on the data
@@ -374,6 +380,8 @@ smttime_gamma <- function(peak) {
   # compute chi-sq stat, subtract 2 degrees of freedom for two parameters
   chisq <- sum((observed-expected)^2/expected); chisq
   pvalue <- pchisq(chisq, df = 7, lower.tail = FALSE); pvalue
+  
+  return(list(pvalue, shape, rate))
 }  
 
 # we apply the function to each individual peak, and to the collection of all 8
@@ -391,6 +399,10 @@ smttime_gamma(all_peaks)
 # In the end, it seems that at large summit times cannot reliably be modeled by 
 # a gamma distribution. Only one mountain, Lhotse, returned a p-value large 
 # enough to suggest that the data may come from a gamma distribution. 
+# with shape parameter ~8.1 and rate parameter ~.82, we find an expected
+# summit time of close to 10 in the morning
+8.1/.82 # expected summit time
+8.1/.82^2 # variance in summit time
 
 
 #-----------------------------------------------------------------------------#
@@ -780,28 +792,25 @@ summary(lm.success)
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
-# we can use logistic regression to estimate the impact that oxygen use has
-# on the odds of summiting or dying. 
+# however, it may be better to look at the impact of oxygen on summiting on a 
+# per-climb basis, rather than over the aggregates of several attempts by
+# one climber. For this, we turn to logistic regression. We will estimate 
+# the impact that using oxygen has on the odds of summiting for each climb
 
-# extract data for summit success, death, and oxygen use ratio
-# note that these are aggregates over all climbs for one particular climber,
-# so summited is whether a climber ever summited (1) or not (0). Likewise
-# for death
-summited <- climbers_unique$summited
-died <- climbers_unique$died
-o2_ratio <- climbers_unique$o2_ratio
+# extract variables for success and use of oxygen
+summited <- climbers$msuccess
+mo2used <- climbers$mo2used
 
-### oxygen use and summiting ###
-# plot oxygen use against whether climber ever successfully summited
-plot(o2_ratio, summited,
+
+plot(mo2used, summited,
      main = "Oxygen Use Impact on Odds of Summiting",
-     xlab = "Oxygen Use Ratio",
-     ylab = "Summited at Least One Peak")
+     xlab = "Oxygen Used (1 = yes, 0 = no)",
+     ylab = "Summited (1 = yes, 0 = no)")
 
 # use log likelihood function to estimate the parameters
 MLL<- function(alpha, beta) {
-  -sum( log( exp(alpha+beta*o2_ratio)/(1+exp(alpha+beta*o2_ratio)) )*summited
-        + log(1/(1+exp(alpha+beta*o2_ratio)))*(1-summited) )
+  -sum( log( exp(alpha+beta*mo2used)/(1+exp(alpha+beta*mo2used)) )*summited
+        + log(1/(1+exp(alpha+beta*mo2used)))*(1-summited) )
 }
 
 # fit the model with initial guess of alpha = 0, beta = 0
@@ -809,37 +818,48 @@ results<-mle(MLL, start = list(alpha = 0, beta = 0))
 results@coef
 # plot the regression curve
 curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+# we see that our estimated coefficients match those in R's logit function,
+# and that oxygen use is statistically significant
+summary(glm(msuccess~mo2used, family = "binomial", data = climbers))
+# to get a more intuitive understanding of using oxygen on summiting, we 
+# take the exponential of the coefficient on oxygen use to get the odds ratio
+exp(results@coef[2])
+# this tells us that people who use oxygen are at 30 times greater odds of
+# summiting than those who do not use oxygen
 
-# We see from the curve that as a climbers oxygen use ratio increases, so
-# to do their odds of having summited at least one mountain
-# our results agree with R's built in function, and we even see that the
-# oxygen use ratio significantly increases the log odds of summiting
-summary(glm(summited~o2_ratio, family = "binomial", data = climbers_unique))
+# though of course, use of oxygen is not the only thing that impacts the odds
+# of summiting a mountain. So we build a larger model to control for other factors
+# such as the age of the climber, whether they climb in the spring or not, sex,
+# and whether or not the climber is hired help
 
+summited <- climbers$msuccess
+mo2used <- climbers$mo2used
+main_season <- climbers$main_season 
+sex <- climbers %>% mutate(sex = ifelse(sex == "M", 1, 0)) %>% pull(sex)
+hired <- climbers$hired %>% as.numeric()
+age <- climbers$calcage
 
-### oxygen use and death ###
-plot(o2_ratio, died,
-     main = "Oxygen Use Impact on Odds of Dying",
-     xlab = "Oxygen Use Ratio",
-     ylab = "Died")
-
-# use log likelihood function to estimate the parameters
-MLL<- function(alpha, beta) {
-  -sum( log( exp(alpha+beta*o2_ratio)/(1+exp(alpha+beta*o2_ratio)) )*died
-        + log(1/(1+exp(alpha+beta*o2_ratio)))*(1-died) )
+# we start by using an expanded version of the log likelihood method to estimate
+# more parameters
+MLL<- function(alpha, beta1, beta2, beta3, beta4, beta5) {
+  -sum( log( exp(alpha + beta1*mo2used + beta2*main_season + beta3*sex + beta4*hired + beta5*age)/
+               (1+exp(alpha + beta1*mo2used + beta2*main_season + beta3*sex + beta4*hired + beta5*age)) )*summited
+        + log(1/(1+exp(alpha + beta1*mo2used + beta2*main_season + beta3*sex + beta4*hired + beta5*age)))*(1-summited) )
 }
 
-# fit the model with initial guess of alpha = 0, beta = 0
-results<-mle(MLL, start = list(alpha = 0, beta = 0)) 
+# fit the model with initial guess of alpha = 0, beta's = 0
+results<-mle(MLL, start = list(alpha = 0, beta1 = 0, beta2 = 0, beta3 = 0 , beta4 = 0,  beta5 = 0)) 
 results@coef
-# plot the regression curve
-curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+# checking against R's built in function once again shows close agreement, and
+# also significance for every variable except sex
+summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = climbers))
+# we see again that use of oxygen greatly increases the odds of summiting, 
+# while hired climbers are also at increased odds of summiting. Meanwhile those
+# climbing during the spring are at decreased odds of summiting (this may be due
+# to a larger number of inexperienced climbers, who would only make attempts during
+# the main season when guided tours are available) and increasing age puts people
+# at decreased odds of summiting as well.
 
-# here the curve is more difficult to see, but there does appear to be a slightly
-# negative slope, and our beta coefficient tells us that oxygen use
-# decreases the log odds of dying. And we see from using R's built in
-# logistic regression function that oxygen use again is significant
-summary(glm(died~o2_ratio, family = "binomial", data = climbers_unique))
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
