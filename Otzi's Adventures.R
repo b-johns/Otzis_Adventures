@@ -1353,21 +1353,20 @@ model_data <- df %>%
   }
   
   # Generating power as a function of expeditions randomized, assuming 27 climbers per expedition,
-  # which was roughly the mean for Everest climbs
-  J_vec <- seq(50, 1200, by = 50); J_vec
-  power_vec <- sapply(J_vec, function(x) powe.R(J = x, K = 27)) #! warning to graders: this could easily take 2 hours to run
-                                                                #  and will likely generate some model fit warnings
-  
-  # Plotting results
-  ggplot(data.frame(J_vec, power_vec)) + 
-    geom_point(aes(x = J_vec, y = power_vec)) + 
-    geom_line(aes(x = J_vec, y = power_vec)) + 
-    xlab('Number of Expeditions') + 
-    ylab('Power') + 
-    ggtitle('Power as a Function of Expeditions Randomized') + 
-    geom_vline(aes(xintercept = J_classical), col = 'red') + 
-    geom_vline(aes(xintercept = 1050), col = 'blue') + 
-    geom_hline(aes(yintercept = 0.8), col = 'black')
+  # which was roughly the mean for Everest climbs:
+  # J_vec <- seq(50, 1200, by = 50); J_vec #! warning: full code here takes 2 hrs to run; will just show a test case below
+  # power_vec <- sapply(J_vec, function(x) powe.R(J = x, K = 27))
+  J_vec <- 80 # this was our result from classical approach; simulation says this is very inadequate sample size
+  power_vec <- sapply(J_vec, function(x) powe.R(J = x, K = 27))
+  # ggplot(data.frame(J_vec, power_vec)) + 
+  #   geom_point(aes(x = J_vec, y = power_vec)) + 
+  #   geom_line(aes(x = J_vec, y = power_vec)) + 
+  #   xlab('Number of Expeditions') + 
+  #   ylab('Power') + 
+  #   ggtitle('Power as a Function of Expeditions Randomized') + 
+  #   geom_vline(aes(xintercept = J_classical), col = 'red') + 
+  #   geom_vline(aes(xintercept = 1050), col = 'blue') + 
+  #   geom_hline(aes(yintercept = 0.8), col = 'black')
     
 
   # Simulation results suggest that for 80% power, we would need to randomize a 
