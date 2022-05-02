@@ -650,9 +650,26 @@ abline(v=obs, col="red") # observed
 (sum(diffs < obs)+1)/(N+1)
 # Ony 1.7% of our simulate rate differences are more negative that the observed difference. This would be a one-way t-test and provide evidence that business people summit at a lower than professional alpinists.
 
-# Let's compare our simulation result against the built-in chi squared function 
+# Let's compare our simulation result against the a chi squared test of the contingency table 
+
+# Contingency table of observed values with occupation type (alpinist vs business person) as rows and summit success (T/F) as columns
+OBS <- table(occ$occ, occ$msuccess); OBS
+
+# Create a version of contingency table with expected values if there is no difference in summit success by occupation 
+p_alp <- mean(occ$occ == "alpinist"); p_alp # proportion of observations for alpinists
+p_fail <- mean(occ$msuccess == FALSE); p_fail # proportion of observations that fail to summit 
+N  <- nrow(occ); N # total number of observations 
+EXP <- N * outer(c(p_alp, 1-p_alp), c(p_fail, 1-p_fail)); EXP 
+
+# Run chi-squared test manually 
+chisq <- sum((OBS - EXP)^2/EXP); chisq # chi-sq statistic = 4.36
+pValue <- 1 - pchisq(chisq,1); pValue # df = (2-1)*(2-1) = 1 
+# Our p-value is 0.03677949. This means there is a 3.67% chance that our observed difference in summit success rates between alpinists and business people might arise by chance. At a 5% signficiance level, we would reject the null hypothesis that there is no difference in summit success between people in the two occupation groups. 
+# Our p-value also is exceptionally close to the p-value we found in the permutation test!
+
+# Confirm contingency table analysis with built-in chi-sq test 
 chisq.test(occ$occ, occ$msuccess, correct=F)
-# Our p-value is 0.03678, so our results and conclusions match!
+# Our chi-sq stat is 4.3606 and  p-value is 0.03678, so our results and conclusions match!
 
 
 ################################################################################
@@ -881,7 +898,9 @@ pred_pressure <- b + a*spring_weather$temp
 spring_weather$resid_pressure = spring_weather$pressure - pred_pressure
 var_pred <- var(pred_pressure)
 var_obs <- var(spring_weather$pressure)
-var_pred/var_obs # We can explain about 34% of the variation in pressure by temperature. 
+R2 <- var_pred/var_obs; R2 # We can explain about 34% of the variation in pressure by temperature. 
+N <- nrow(spring_weather)
+Adj_R2 <- 1 - ( (1-R2) * (N-1) / (N-1-1) ); Adj_R2 # 1 independent variable; Adjusted for number of parameters, we still can explain about 34% of the variation in pressure by temperature.
 
 # Let's check this against the built-in function
 summary(lm(pressure ~ temp, data = spring_weather)) # Our coefficients and R-squared values match those we manually calculated!
@@ -942,8 +961,11 @@ pred_pressure <- b + a1*spring_weather$temp + a2*spring_weather$high_humidity
 spring_weather$resid_pressure = spring_weather$pressure - pred_pressure
 var_pred <- var(pred_pressure)
 var_obs <- var(spring_weather$pressure)
-var_pred/var_obs # We can explain about 35% of the variation in pressure by temperature and high humidity status. This is only 1% higher than if we use only temperature, indicating that we probably shouldn't be using high humidity as a predictor.
+R2 <- var_pred/var_obs; R2 # We can explain about 35% of the variation in pressure by temperature and high humidity status. This is only 1% higher than if we use only temperature, indicating that we probably shouldn't be using high humidity as a predictor.
+N <- nrow(spring_weather)
+Adj_R2 <- 1 - ( (1-R2) * (N-1) / (N-2-1) ); Adj_R2 # 2 independent variable; Adjusted for number of parameters, we still can explain about 35% of the variation in pressure by temperature.
 
+# Let's check this against the built-in function
 summary(lm(pressure ~ temp + high_humidity, data = spring_weather)) # All our coefficients and R-square calculations match the built-in function. 
 # It is interesting here that we find the coefficient on high-humidity to be statistically significant with a t value of 11.25. The plot doesn't provide convincing evidence that this might the case, and we end up seeing that high humidity is a weak predictor (both in correlation w/ our response of barometric pressure & contribution to R-squared).
 
