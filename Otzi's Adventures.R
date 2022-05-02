@@ -869,7 +869,8 @@ basecamp <- basecamp %>%
 spring_weather <- basecamp %>% 
   filter(month == "03" | month == "04" | month == "05") %>% # the most popular season for expeditions is spring: March - May 
   group_by(date) %>%
-  mutate(total_precip = sum(precip)) %>% # total precipitation over the course of a day 
+  mutate(total_precip = sum(precip), # total precipitation over the course of a day 
+         min_temp = min(temp)) %>% # minimum temperature over the course of a day 
   ungroup %>%
   mutate(rainy_day = as.numeric(total_precip > 0), # rainy day if have any precipitation 
          high_humidity = as.numeric(humid > mean(humid))) # high humidity day if above average humidity 
@@ -939,7 +940,7 @@ ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high
        x = "Temperature (degrees C)",
        y = "Barometric Pressure (hPa)",
        color = "High Humidity") 
-# It's not readily apparent that we should expect high humidity to have statistical significance as a predictor in our model. There is similar variation in both temperature and barometric pressure for high humidity and non-high humidity days.
+# I hypothesize that high humidity will not be a statistically significant predictor in our model. There is similar variation in both temperature and barometric pressure for high humidity and non-high humidity days. Also, we already know there is weak correlation between humidity variables and our outcome of barometric pressure from above. 
 
 # Using projection matrix, 
 m1 <- rep(1, length(spring_weather))
@@ -968,6 +969,7 @@ Adj_R2 <- 1 - ( (1-R2) * (N-1) / (N-2-1) ); Adj_R2 # 2 independent variable; Adj
 # Let's check this against the built-in function
 summary(lm(pressure ~ temp + high_humidity, data = spring_weather)) # All our coefficients and R-square calculations match the built-in function. 
 # It is interesting here that we find the coefficient on high-humidity to be statistically significant with a t value of 11.25. The plot doesn't provide convincing evidence that this might the case, and we end up seeing that high humidity is a weak predictor (both in correlation w/ our response of barometric pressure & contribution to R-squared).
+# Though we get this surprising statistically significant result, it probably makes sense to go with the univariate linear model of barometric pressure ~ temperature. 
 
 # Since temperature can serve as a predictor for barometric pressure, let's see if we can model temperatures over the spring season.
 temp_2020 <- spring_weather[1:2207,]$temp # temperatures in 2020
@@ -1043,8 +1045,45 @@ plot_Fourier(200)
 # For our purposes of using predicted temperatures to estimate barometric pressure and thus potential supplemental oxygen needs, we should either use the ncoeff = 3 or ncoeff = 13 models. 
 # Either way, we see that the lowest temperatures are expected earliest in the season (March into April). Thus, we would expect barometric pressure to be lowest in the early climbing season, so we should focus on selling supplemental oxygen in March/April rather than May. 
 
+# So, we know when to have more supplemental oxygen available for purchase within the season. But, we should also try to find a standard amount of supplemental oxygen to have regardless of the point in the season. 
+# In an effort to determine this, we can figure out the average daily minimum temperature for the spring season. (At lower temperatures, there is lower barometric pressure and thus greater need for supplemental oxygen.)
 
+# Assumption: Our two seasons of temperature data are indicative of typical spring weather conditions on Everest. 
+# Let's try to build a 95% confidence interval using a random sample of 30 days. 
 
+min_daily_temp <- spring_weather %>%
+  filter(hr == "01") %>%
+  select(min_temp)
+min_daily_temp <- min_daily_temp$min_temp
+
+mu <- mean(min_daily_temp); mu # population mean 
+sigma <- sd(min_daily_temp); sigma # population standard deviation 
+
+n <- 30 # sample size
+samp <- sample(min_daily_temp, n, replace =FALSE)
+X_bar <- mean(samp); X_bar # sample mean 
+L <- X_bar + qt(0.025, df = n-1) * sigma/sqrt(n); L
+U <- X_bar + qt(0.975, df = n-1) * sigma/sqrt(n); U
+# From a single sample of 50, we get a sample mean of -7.8562 with a 95% confidence interval of (-8.826572, -6.885828). This CI contains the true average daily minimum temperature of -8.484342. 
+
+# Let's repeat this a large number of times and check that we are capturing the true mean in 95% of the confidence intervals we construct. 
+counter <- 0 # counter to record every time the CI contains the population mean 
+counter_mu_above <- 0 # counter to record every time the CI is below the population mean (U < mu)
+counter_mu_below <- 0 # counter to record every time the CI is over the population mean (mu < L)
+N <-10000
+for (i in 1:N) {
+  samp <- sample(min_daily_temp, n, replace =FALSE)
+  L <- mean(samp) + qt(0.025, n-1) * sigma/sqrt(n) #usually less than the true mean
+  U <- mean(samp) + qt(0.975, n-1) * sigma/sqrt(n) #usually greater than the true mean
+  if (L < mu && U > mu) counter <- counter + 1 #count +1 if we were correct
+  if (U < mu) counter_mu_above <- counter_mu_above + 1
+  if (L > mu) counter_mu_below <- counter_mu_below + 1 
+}
+counter; counter_mu_above; counter_mu_below
+# We are actually getting about 97.5% of our confidence intervals containing the population mean. It also appears that the confidence intervals we are constructing are more likely to overestimate than underestimate the true mean (more observations of counter_mu_below).
+hist(min_daily_temp, main = "Histogram", xlab = "Minimum Daily Temperature", breaks = "FD")
+abline(v = mu, col="red")
+# It looks like are getting these results as our distribution of minimum daily temperatures over the spring is not normal. The majority of observations below the mean occur within a few degrees of the mean, but the observations above the mean are more spread out. 
 
 ################################################################################
 # Power analysis
