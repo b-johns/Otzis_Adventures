@@ -900,13 +900,13 @@ exp(results@coef[2])
 # of summiting a mountain. So we build a larger model to control for other factors
 # such as the age of the climber, whether they climb in the spring or not, sex,
 # and whether or not the climber is hired help
-
-summited <- climbers$msuccess
-mo2used <- climbers$mo2used
-main_season <- climbers$main_season 
-sex <- climbers %>% mutate(sex = ifelse(sex == "M", 1, 0)) %>% pull(sex)
-hired <- climbers$hired %>% as.numeric()
-age <- climbers$calcage
+logit_reg <- climbers %>% filter(!is.na(calcage))
+summited <- logit_reg$msuccess %>% as.numeric()
+mo2used <- logit_reg$mo2used %>% as.numeric()
+main_season <- logit_reg$main_season 
+sex <- logit_reg %>% mutate(sex = ifelse(sex == "M", 1, 0)) %>% pull(sex)
+hired <- logit_reg$hired %>% as.numeric()
+age <- logit_reg$calcage
 
 # we start by using an expanded version of the log likelihood method to estimate
 # more parameters
@@ -921,7 +921,7 @@ results<-mle(MLL, start = list(alpha = 0, beta1 = 0, beta2 = 0, beta3 = 0 , beta
 results@coef
 # checking against R's built in function once again shows close agreement, and
 # also significance for every variable except sex
-summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = climbers))
+summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = logit_reg))
 # we see again that use of oxygen greatly increases the odds of summiting, 
 # while hired climbers are also at increased odds of summiting. Meanwhile those
 # climbing during the spring are at decreased odds of summiting (this may be due
