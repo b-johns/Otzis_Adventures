@@ -17,58 +17,21 @@ library(survival)
 library(readr)
 library(survminer)
 
-# Load data
-df <- read.csv('climbers_full.csv')
-
-
-# read in dataset #
-# add variables for the height and full name of each peak
-climbers_full <- read.csv("climbers_full.csv") %>%
-  mutate(peakhgt = case_when(peakid == "EVER" ~ 8489,
-                             peakid == "KANG" ~ 8586,
-                             peakid == "LHOT" ~ 8516,
-                             peakid == "MAKA" ~ 8485,
-                             peakid == "CHOY" ~ 8188,
-                             peakid == "DHA1" ~ 8167,
-                             peakid == "MANA" ~ 8163,
-                             peakid == "ANN1" ~ 8091),
-         peakname = case_when(peakid == "EVER" ~ "Everest",
-                              peakid == "KANG" ~ "Kangchenjunga",
-                              peakid == "LHOT" ~ "Lhotse",
-                              peakid == "MAKA" ~ "Makalu",
-                              peakid == "CHOY" ~ "Cho Oyu",
-                              peakid == "DHA1" ~ "Dhaulagiri",
-                              peakid == "MANA" ~ "Manaslu",
-                              peakid == "ANN1" ~ "Annapurna"))
-
-
-
-# create a unique ID for each climber, and tally how many climbs they went on (n_climb),
-# how many summits they achieved (n_success), how often they used oxygen as a 
-# ratio of oxygen use count over climb count (o2_ratio), and whether or
-# not they ultimately died on one of their climbs (died)
-climbers <- climbers_full  %>% 
-  mutate(climb_id = group_indices(.,fname, lname, yob)) %>%
-  group_by(climb_id) %>%
-  mutate(n_climb = sum(n()),
-         died = sum(death),
-         n_success = sum(msuccess),
-         summited = ifelse(n_success == 0, 0, 1),
-         n_o2 = sum(mo2used),
-         o2_ratio = n_o2/n_climb,
-         main_season = ifelse(mseason == 1, 1, 0)) %>% 
-  ungroup() 
-
-
-# create dataframe that keeps one observation per distinct climber
-climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
-
-
-all_peaks <- climbers$peakid %>% unique(); all_peaks
-
 ## Descriptive Statistics of Climbing Data
-# Read in dataframe 
-climbers_full <- read_csv("Downloads/climbers_full.csv")
+# Read in dataframe, save data in original form for power analysis
+df <- climbers_full <- read_csv("climbers_full.csv")
+
+###############################################################################
+### POINTS EARNED ###
+# A dataframe
+# at least two categorical or logical variables 
+# at least two numeric columns
+# at least 20 rows
+# A dataset with lots of columns (we have 70+ columns)
+# a data set that is so large it can be used as a population - this dataset covers
+#   all climbs in the Nepal Himalaya for the given years, so it can be taken as
+#   the population of climbers in the Nepal Himalaya
+###############################################################################
 
 attach(climbers_full)
 # Climbers-Specific 
@@ -81,7 +44,7 @@ attach(climbers_full)
   # Citizen 
   table(citizen) # This is certainly freetext and not standardized. 
   # Status 
-  table(status) # Again a freetext field, but we see the majority are labled as  "Climbers", "H-A Worker", or "Leader"
+  table(status) # Again a freetext field, but we see the majority are labeled as  "Climbers", "H-A Worker", or "Leader"
   # Leader
   table(leader)
   table(leader)/length(leader) # About 13% of climbers are considered leaders of the expedition. 
@@ -153,6 +116,50 @@ climbers_full$age_grp <- climbers_full$age_grp %>%
          labels = c("<18", "18-34", "35-49", "50-64", "65+"))
 
 
+# add variables for the height of each peak and the full name of each peak
+climbers_full <- climbers_full %>%
+  mutate(peakhgt = case_when(peakid == "EVER" ~ 8489,
+                             peakid == "KANG" ~ 8586,
+                             peakid == "LHOT" ~ 8516,
+                             peakid == "MAKA" ~ 8485,
+                             peakid == "CHOY" ~ 8188,
+                             peakid == "DHA1" ~ 8167,
+                             peakid == "MANA" ~ 8163,
+                             peakid == "ANN1" ~ 8091),
+         peakname = case_when(peakid == "EVER" ~ "Everest",
+                              peakid == "KANG" ~ "Kangchenjunga",
+                              peakid == "LHOT" ~ "Lhotse",
+                              peakid == "MAKA" ~ "Makalu",
+                              peakid == "CHOY" ~ "Cho Oyu",
+                              peakid == "DHA1" ~ "Dhaulagiri",
+                              peakid == "MANA" ~ "Manaslu",
+                              peakid == "ANN1" ~ "Annapurna"))
+
+
+
+# create a unique ID for each climber, and tally how many climbs they went on (n_climb),
+# how many summits they achieved (n_success), how often they used oxygen as a 
+# ratio of oxygen use count over climb count (o2_ratio), and whether or
+# not they ultimately died on one of their climbs (died)
+climbers <- climbers_full  %>% 
+  mutate(climb_id = group_indices(.,fname, lname, yob)) %>%
+  group_by(climb_id) %>%
+  mutate(n_climb = sum(n()),
+         died = sum(death),
+         n_success = sum(msuccess),
+         summited = ifelse(n_success == 0, 0, 1),
+         n_o2 = sum(mo2used),
+         o2_ratio = n_o2/n_climb,
+         main_season = ifelse(mseason == 1, 1, 0)) %>% 
+  ungroup() 
+
+
+# create dataframe that keeps one observation per distinct climber
+climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
+
+
+all_peaks <- climbers$peakid %>% unique(); all_peaks
+
 
 ################################################################################
 # Fitting Distributions 
@@ -220,6 +227,15 @@ Chistat <- ChiSq(obs_bin, exp_bin); Chistat
 # expecting an unfortunate accident.
 pchisq(Chistat, 4, lower.tail = FALSE)
 
+###############################################################################
+### POINTS EARNED ###
+# a barplot
+# a p-value or other statistic based on a distribution function 
+# appropriate use of R functions for distributions other than binomial, normal
+#   or chi-square (geometric)
+###############################################################################
+
+
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
@@ -286,6 +302,13 @@ pchisq(Chistat, 3, lower.tail = FALSE)
 1/p # expected value
 (1-p)/p^2 # variance
 
+###############################################################################
+### POINTS EARNED ###
+# a barplot
+# a p-value or other statistic based on a distribution function 
+# appropriate use of R functions for distributions other than binomial, normal
+#   or chi-square (geometric)
+###############################################################################
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -404,6 +427,15 @@ smttime_gamma(all_peaks)
 8.1/.82 # expected summit time
 8.1/.82^2 # variance in summit time
 
+###############################################################################
+### POINTS EARNED ###
+# a histogram 
+# probability density graph overlaid on a histogram
+# use of quantiles to compare distributions
+# use of theoretical knowledge of a gamma distribution
+# defining and using your own functions
+###############################################################################
+
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -448,13 +480,20 @@ pchisq(chi_sq_stat, df=97, lower.tail = FALSE) # df = 100 bins - 2 parameters - 
 # Calculate deciles from actual data 
 data_deciles <- quantile(climbers_full$exp_sex, seq(0, 1, 0.01), type=2); data_deciles
 
-# Plot deciles of beta distriubtion against deciles from data 
+# Plot deciles of beta distribution against deciles from data 
 plot(beta_deciles[1:100], data_deciles[1:100], xlim=c(0,1), ylim=c(0,1), xlab = "Deciles of Beta Distribution", ylab="Deciles of Data", main = "Q-Q Plot")
 y <- function(x) x
 curve(y, to=1, col="red", add=TRUE)
 # Our data points of the deciles aren't linear, so our p-value and conclusion makes sense. 
 # It is likely that the reason the beta distribution is failing to be appropriate is because 36% of our observations are at 1, which is the ceiling of the distribution. Also, though the proportion is a continuous variable, to some extent it is taking discrete values as the total number of members on an expedition are repeated (denominator) and the numerator of total number of males can only take on so many discrete values.
 
+###############################################################################
+### POINTS EARNED ###
+# a histogram 
+# probability density graph overlaid on a histogram
+# use of quantiles to compare distributions
+# use of theoretical knowledge of a beta distribution
+###############################################################################
 
 
 ################################################################################
@@ -501,7 +540,7 @@ ggsurvplot(
   title = "Climbing Everest",
   xlab = "Height (in m)", 
   ylab = "Overall probability")
-# It looks like climbing success decreases as you increase the age group. Those under 18 are the most sucessful with over 80% summiting (though this is likely a selection effect), but those over 65 summit at about a rate of 25%
+# It looks like climbing success decreases as you increase the age group. Those under 18 are the most successful with over 80% summiting (though this is likely a selection effect), but those over 65 summit at about a rate of 25%
 
 # By leader status
 ggsurvplot(
@@ -528,7 +567,13 @@ ggsurvplot(
   title = "Climbing Everest",
   xlab = "Height (in m)", 
   ylab = "Overall probability")
-# Not only is the spring the most popular season to climb, it appears to the only season where we observe people actually summitting. 
+# Not only is the spring the most popular season to climb, it appears to the only season where we observe people actually summiting. 
+
+
+###############################################################################
+### POINTS EARNED ###
+# a graphical display different from those in class scripts
+###############################################################################
 
 ##############################################
 ### permutation test summit time and death ###
@@ -612,6 +657,14 @@ mean(diffs) # should be, and is, close to zero
 # later in the day than those who survive, as was expected.
 pvalue <- (sum(diffs >= observed)+1)/(N+1); pvalue
 
+
+
+###############################################################################
+### POINTS EARNED ###
+# a permutation test
+# use of ggplot
+###############################################################################
+
 ##############################################
 ### Climbing Success of Busines People vs. Alpinists ###
 ##############################################
@@ -662,7 +715,7 @@ abline(v=obs, col="red") # observed
 (sum(abs(diffs) > abs(obs))+1)/(N+1)
 # Only 3.7% of our simulated rate differences are as great in magnitude as our observed difference. At at 5% significance level, we would reject the null hypothesis that there is no difference in summitting rates between business people and alpinists. 
 (sum(diffs < obs)+1)/(N+1)
-# Ony 1.7% of our simulate rate differences are more negative that the observed difference. This would be a one-way t-test and provide evidence that business people summit at a lower than professional alpinists.
+# Only 1.7% of our simulate rate differences are more negative that the observed difference. This would be a one-way t-test and provide evidence that business people summit at a lower than professional alpinists.
 
 # Let's compare our simulation result against the a chi squared test of the contingency table 
 
@@ -678,12 +731,20 @@ EXP <- N * outer(c(p_alp, 1-p_alp), c(p_fail, 1-p_fail)); EXP
 # Run chi-squared test manually 
 chisq <- sum((OBS - EXP)^2/EXP); chisq # chi-sq statistic = 4.36
 pValue <- 1 - pchisq(chisq,1); pValue # df = (2-1)*(2-1) = 1 
-# Our p-value is 0.03677949. This means there is a 3.67% chance that our observed difference in summit success rates between alpinists and business people might arise by chance. At a 5% signficiance level, we would reject the null hypothesis that there is no difference in summit success between people in the two occupation groups. 
+# Our p-value is 0.03677949. This means there is a 3.67% chance that our observed difference in summit success rates between alpinists and business people might arise by chance. At a 5% significance level, we would reject the null hypothesis that there is no difference in summit success between people in the two occupation groups. 
 # Our p-value also is exceptionally close to the p-value we found in the permutation test!
 
 # Confirm contingency table analysis with built-in chi-sq test 
 chisq.test(occ$occ, occ$msuccess, correct=F)
 # Our chi-sq stat is 4.3606 and  p-value is 0.03678, so our results and conclusions match!
+
+###############################################################################
+### POINTS EARNED ###
+# contingency table analysis
+# a permutation test
+# histograms
+# comparison of analysis by classical methods (chi-square) and simulation methods
+###############################################################################
 
 
 ################################################################################
@@ -789,6 +850,14 @@ summary(lm.success)
 # negatively as well, though the coefficient is minuscule. Likewise men have
 # a slight advantage over women
 
+
+###############################################################################
+### POINTS EARNED ###
+# use of linear regression
+# appropriate use of novel statistics (ratios)
+# ggplot
+###############################################################################
+
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
 
@@ -860,6 +929,11 @@ summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = 
 # the main season when guided tours are available) and increasing age puts people
 # at decreased odds of summiting as well.
 
+###############################################################################
+### POINTS EARNED ###
+# calculation and display of a logistic regression
+# defining and using your own functions
+###############################################################################
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -1107,6 +1181,20 @@ hist(min_daily_temp, main = "Histogram", xlab = "Minimum Daily Temperature", bre
 abline(v = mu, col="red")
 # It looks like are getting these results as our distribution of minimum daily temperatures over the spring is not normal. The majority of observations below the mean occur within a few degrees of the mean, but the observations above the mean are more spread out. 
 
+
+###############################################################################
+### POINTS EARNED ###
+# appropriate use of correlation and covariance
+# use of linear regression
+# convincing demonstration of a relationship that might not have been statistically
+#     significant that turned out to be so
+# ggplot 
+# calculation of a confidence interval
+# defining and using your own functions
+# appropriate use of novel statistics (minimums)
+###############################################################################
+
+
 ################################################################################
 # Power analysis
 ################################################################################
@@ -1203,6 +1291,12 @@ model_data <- df %>%
     # ment solves the selection problem. Otherwise, any estimate of the effects
     # of oxygen use on mortality may be biased, if oxygen use is correlated with
     # other traits that lead to better safety and lower mortality.
+  
+
+  ###############################################################################
+  ### POINTS EARNED ###
+  # calculation and display of logistic regression curve
+  ###############################################################################
 
 
 # ------------------------------------------------------
@@ -1262,6 +1356,10 @@ model_data <- df %>%
   # multilevel linear probability model instead of a multilevel logistic 
   # regression model.
   
+  ###############################################################################
+  ### POINTS EARNED ###
+  # use of linear regression
+  ###############################################################################
   
 # -------------------------------------------------  
 # Classical approach to power
@@ -1344,6 +1442,10 @@ model_data <- df %>%
     # to our treatment and control conditions, for 80% probability of picking up on
     # on our hypothesized true effect using alpha = 0.05 (i.e., 80% power).
   
+  ###############################################################################
+  ### POINTS EARNED ###
+  # see bottom of next section, which covers these two sections of code
+  ###############################################################################
   
 # -----------------------------------------------------
 # Simulation-based approach to power
@@ -1490,4 +1592,17 @@ model_data <- df %>%
   # functional form was causing. Contrary to what many economists like to teach
   # in class, the differences between logistic and linear models of a binary out-
   # come can be critical in some circumstances.
+  
+  
+  
+  ###############################################################################
+  ### POINTS EARNED ###
+  # comparison of analysis by classical methods and simulation methods
+  # an example where permutation tests clearly work better than classical methods
+  # defining and using your own functions
+  # use of theoretical knowledge of sampling distributions
+  # use of ggplot
+  # graphical display that is different than those in class scripts
+  # use of covariance and correlation
+  ###############################################################################
   

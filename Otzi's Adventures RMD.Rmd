@@ -1,0 +1,648 @@
+---
+title: "Otzi's Adventures"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+# Install packages
+# install.packages("survival")
+# install.packages("survminer")
+
+# Load libraries
+library(dplyr)
+library(lme4)
+library(ggplot2)
+library(fitdistrplus)
+library(tidyverse)
+library(stats4)
+select <- dplyr::select
+library(survival)
+library(readr)
+library(survminer)
+
+```
+
+```{r}
+
+### READ IN DATA ### 
+
+df <- climbers_full <- read_csv("climbers_full.csv")
+
+```
+
+```{r}
+
+### DATA CLEANING ###
+
+# Change various parts of dataframe based off exploratory analyses 
+climbers_full <- climbers_full %>%
+  dplyr::mutate(calcage = ifelse(calcage == 0, NA, calcage), 
+                mperhighpt = ifelse(mperhighpt == 0, NA, mperhighpt),
+                mperhighpt = ifelse(mperhighpt > 8167 & peakid == "DHA1", 8167, mperhighpt),
+                mperhighpt = ifelse(mperhighpt > 8849 & peakid == "EVER", 8849, mperhighpt),
+                deathtype = ifelse(deathtype == 0, NA, deathtype), 
+                injurytype = ifelse(injurytype == 0, NA, injurytype))
+
+climbers_full$deathtype <- climbers_full$deathtype %>%
+  factor(levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 
+         labels=c("AMS", "Exhaustion", "Exposure", "Fall", "Crevasse", "Icefall", "Avalanche", "Falling Rock/Ice", "Disappearance", "Illness", "Other", "Unknown") )
+
+climbers_full$injurytype <- climbers_full$injurytype %>%
+  factor(levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 
+         labels=c("AMS", "Exhaustion", "Exposure", "Fall", "Crevasse", "Icefall", "Avalanche", "Falling Rock/Ice", "Disappearance", "Illness", "Other", "Unknown") )
+
+# Create additional variables from existing data
+climbers_full <- climbers_full %>%
+  dplyr::mutate(age_grp = case_when(calcage < 18 ~ 1, # standardized age groups
+                                    calcage >= 18 & calcage < 35 ~ 2,
+                                    calcage >= 35 & calcage < 49 ~ 3,
+                                    calcage >= 50 & calcage < 65 ~ 4, 
+                                    calcage >= 65 ~ 5)) %>%
+  group_by(expid) %>%
+  mutate(exp_members = n(),
+         exp_sex = mean(sex == "M"), # proportion of expedition members that are male
+         exp_retire = mean(age_grp == 5), # proportion of expedition members that are retirement age
+         exp_wrk_age = mean(age_grp == 2 | age_grp == 3 | age_grp == 4), # proportion of expedition members that are working age
+         exp_leaders = mean(leader == TRUE), # proportion of expedition members that are leaders
+         exp_max_ht = max(mperhighpt)) %>% # highest point reached by anyone on the expedition
+  ungroup %>%
+  dplyr::mutate(rel_max_ht = mperhighpt/exp_max_ht) # each member's high point relative to highest point reached by anone on the expedition
+
+climbers_full$age_grp <- climbers_full$age_grp %>%
+  factor(levels = c(1, 2, 3, 4, 5),
+         labels = c("<18", "18-34", "35-49", "50-64", "65+"))
+
+
+# add variables for the height of each peak and the full name of each peak
+climbers_full <- climbers_full %>%
+  mutate(peakhgt = case_when(peakid == "EVER" ~ 8489,
+                             peakid == "KANG" ~ 8586,
+                             peakid == "LHOT" ~ 8516,
+                             peakid == "MAKA" ~ 8485,
+                             peakid == "CHOY" ~ 8188,
+                             peakid == "DHA1" ~ 8167,
+                             peakid == "MANA" ~ 8163,
+                             peakid == "ANN1" ~ 8091),
+         peakname = case_when(peakid == "EVER" ~ "Everest",
+                              peakid == "KANG" ~ "Kangchenjunga",
+                              peakid == "LHOT" ~ "Lhotse",
+                              peakid == "MAKA" ~ "Makalu",
+                              peakid == "CHOY" ~ "Cho Oyu",
+                              peakid == "DHA1" ~ "Dhaulagiri",
+                              peakid == "MANA" ~ "Manaslu",
+                              peakid == "ANN1" ~ "Annapurna"))
+
+
+# create a unique ID for each climber, and tally how many climbs they went on (n_climb),
+# how many summits they achieved (n_success), how often they used oxygen as a 
+# ratio of oxygen use count over climb count (o2_ratio), and whether or
+# not they ultimately died on one of their climbs (died)
+climbers <- climbers_full  %>% 
+  mutate(climb_id = group_indices(.,fname, lname, yob)) %>%
+  group_by(climb_id) %>%
+  mutate(n_climb = sum(n()),
+         died = sum(death),
+         n_success = sum(msuccess),
+         summited = ifelse(n_success == 0, 0, 1),
+         n_o2 = sum(mo2used),
+         o2_ratio = n_o2/n_climb,
+         main_season = ifelse(mseason == 1, 1, 0)) %>% 
+  ungroup() 
+
+
+# create dataframe that keeps one observation per distinct climber
+climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
+
+
+all_peaks <- climbers$peakid %>% unique()
+
+```
+
+
+```{r}
+
+################################################################################
+# Fitting Distributions 
+################################################################################
+
+climbs_b4_death <- climbers_unique %>%
+  filter(died == 1) %>%
+  pull(n_climb)
+
+# bin the observed data so we have 10 or more observations per bin
+obs <- table(climbs_b4_death)
+obs_bin <- obs
+obs_bin[5] <- sum(obs_bin[5:6])
+obs_bin[6] <- sum(obs_bin[7:12])
+obs_bin <- obs_bin[1:6]
+
+# use fitdist to estimate the parameter p, which is the probability of death
+# on each climb
+param <- fitdist(climbs_b4_death, "geom", method = c("mle"))
+p <- param[[1]]
+
+# bin the theoretical distribution similarly to the observed data
+probs <- c(dgeom(0:3,p), dgeom(4,p) + dgeom(5,p), 1 - pgeom(5,p))
+exp_bin <- probs*length(climbs_b4_death)
+
+
+# now we can check a barplot again, comparing the observed values against
+# the expected values. Visually, our observed values don't appear to match the
+# expected distribution very well, but we can conduct a chi-square test to be sure.
+barplot(rbind(obs_bin, exp_bin), 
+        beside = TRUE,
+        main = "Number of Climbs Before Death",
+        sub = "(Inlcudes Final Climb)",
+        xlab = "Number of Climbs",
+        ylab = "Frequency",
+        col = c("firebrick4", "cadetblue4"),
+        legend.text = c("Observed", "Expected"))
+
+
+
+
+summits_b4_death <- climbers_unique %>%
+  filter(died == 1) %>% 
+  pull(n_success)
+
+# bin the observed data so we have 10 or more observations per bin
+obs <- table(summits_b4_death)
+obs_bin <- obs
+obs_bin[5] <- sum(obs_bin[5:8])
+obs_bin <- obs_bin[1:5]
+
+# use fitdist to estimate the parameter for a geometric distribution based
+# on our data
+param <- fitdist(summits_b4_death, "geom", method = c("mle"))
+p <- param[[1]]
+
+# bin the expected values the same way as the observed
+probs <- c(dgeom(0:3, p), 1 - pgeom(3,p))
+exp_bin <- probs*length(summits_b4_death)
+
+# looking at a side by side barplot, the observed values generally match quite
+# nicely with the expected values, so there is a good chance that this data
+# can in fact be modeled geometrically. We conduct a chi-square test to make sure
+barplot(rbind(obs_bin, exp_bin), 
+        beside = TRUE,
+        main = "Number of Succesful Summits Before Death",
+        sub = "(Inlcudes Final Summit)",
+        xlab = "Number of Summits",
+        ylab = "Frequency",
+        col = c("firebrick4", "cadetblue4"),
+        legend.text = c("Observed", "Expected"))
+
+
+
+
+summiters <- climbers %>% 
+  filter(msuccess == TRUE,
+         !is.na(msmttime1)) %>%
+  mutate(msmttime1 = as.numeric(msmttime1)) %>%
+  # put summit time in terms of hours/fractions of hours
+  mutate(remainder = msmttime1 %% 100,
+         hour = (msmttime1 - remainder) / 100,
+         frac = remainder / 60,
+         summit_time = hour + frac) %>%
+  select(peakid, peakname, summit_time, death)
+
+
+# we check a histogram of summit times for all 8 peaks combined, and it looks
+# like it may follow a gamma distribution
+hist(summiters$summit_time, 
+     main = "Histogram of Summit Times for All Peaks",
+     xlab = "Summit Time (24 Hour Clock)",
+     border = "white",
+     col = "cadetblue4",
+     xlim = (c(0,24)),
+     probability = TRUE, breaks = "FD")
+
+  # vector of summit times
+  stime <- summiters %>% filter(peakid %in% c("LHOT")) %>% pull(summit_time)
+  sname <- summiters %>% filter(peakid %in% c("LHOT")) %>% pull(peakname) %>% unique()
+  
+  # use fitdist to estimate the parameters #  
+  param <- fitdist(stime, "gamma", method = c("mle"))
+  shape <- param$estimate[[1]]
+  rate <- param$estimate[[2]]
+  
+  
+  # histogram and density curve #
+  hist(stime, 
+       main = paste0("Histogram of Summit Times for ", sname),
+       xlab = "Summit Time (24 Hour Clock)",
+       border = "white",
+       col = "cadetblue4",
+       xlim = (c(round(min(stime))-1,round(max(stime))+1)),
+       probability = TRUE, breaks = "FD")
+  
+  curve(dgamma(x, shape = shape, rate = rate), add = TRUE, col = "red")
+  
+  
+  
+  
+  
+exp_sex_mu = mean(climbers_full$exp_sex)
+exp_sex_var = var(climbers_full$exp_sex)
+
+# Construct alpha and beta from mean and variance 
+alpha <- ( (exp_sex_mu^2 - exp_sex_mu^3)/exp_sex_var ) - exp_sex_mu
+beta <- (alpha/exp_sex_mu) - alpha
+
+# Overlay beta distribution over actual data 
+hist(climbers_full$exp_sex, prob=TRUE, main = "Histogram", xlab = "Proportion of Expedition Members who are Male")
+# Expeditions are highly concentrated with male climbers. 
+curve(dbeta(x, alpha, beta), add = TRUE, col = "red")
+# The curve of the beta distribution appears to approximately fit the distribution. 
+
+# Let's run chi-sq analysis to see exactly how well the beta distribution might fit.
+beta_deciles <- qbeta(seq(0, 1, 0.01), alpha, beta)
+
+# We have lots of observations so we can have a large number of bins and still have very large expected counts. 
+bins <- numeric(100)
+
+# Observed counts in each bin
+for (i in 1:100) {
+  bins[i] <- sum((climbers_full$exp_sex >= beta_deciles[i] & climbers_full$exp_sex < beta_deciles[i+1]))
+}
+
+
+# Expected counts in each bin 
+exp_counts <- rep(length(climbers_full$exp_sex)/100, 100)
+
+# Calculate chi-squared statistic 
+chi_sq_stat <- sum( (bins-exp_counts)^2 / exp_counts ) # 15302.89, offhand this appears large 
+pchisq(chi_sq_stat, df=97, lower.tail = FALSE) # df = 100 bins - 2 parameters - 1 calculation of chi sq stat
+# Our p-value is so small that it is calculated as 0. This means that the beta distribution does not appropriately model the distribution of proportion of expedition members who are male. 
+
+# We can confirm this result with the Q-Q plot 
+# Calculate deciles from actual data 
+data_deciles <- quantile(climbers_full$exp_sex, seq(0, 1, 0.01), type=2)
+
+# Plot deciles of beta distribution against deciles from data 
+plot(beta_deciles[1:100], data_deciles[1:100], xlim=c(0,1), ylim=c(0,1), xlab = "Deciles of Beta Distribution", ylab="Deciles of Data", main = "Q-Q Plot")
+y <- function(x) x
+curve(y, to=1, col="red", add=TRUE)
+
+```
+
+```{r}
+
+
+ever <- climbers_full %>%
+  filter(peakid == "EVER" & mperhighpt != 0) %>% # We will focus on climbers on Everest who have a reported personal high climbing point.
+  dplyr::mutate(status = 1)
+
+# For all climbers
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ 1, data = ever), 
+  main = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Looks like about 75% of our sampled climbers are reaching the peak of Everest. 
+
+# By sex
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(sex), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Looks like females reach higher points of Everest at slightly lower rates than males. 
+
+# By age-groups
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(age_grp), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# It looks like climbing success decreases as you increase the age group. Those under 18 are the most successful with over 80% summiting (though this is likely a selection effect), but those over 65 summit at about a rate of 25%
+
+# By leader status
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(leader), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Leaders have about a 60% probability of summiting, while non-leaders have about a 75% probability. I wonder if there is a practical reason for this, like leaders do many trips so don't need to summit everytime or leaders are responsible for straglers on the expedition who can't make it to the peak.
+
+# By year 
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(myear), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# No one summits in 2015 because of a major avalanche on Everest. Great to see that our data is reflecting known realities.
+
+# By season
+ggsurvplot(
+  fit = survfit(Surv(mperhighpt, status) ~ strata(mseason), data = ever), 
+  conf.int = TRUE, 
+  title = "Climbing Everest",
+  xlab = "Height (in m)", 
+  ylab = "Overall probability")
+# Not only is the spring the most popular season to climb, it appears to the only season where we observe people actually summiting. 
+
+
+
+```
+
+```{r}
+
+### permutation tests ###
+
+ggplot(data = summiters, aes(x = death, y = summit_time)) + 
+  geom_boxplot(fill = "cadetblue4") + 
+  scale_x_discrete(labels = c("TRUE" = "Died", "FALSE" = "Survived")) +
+  # geom_jitter(position = position_jitter(.2), size = .1, color = "red") +
+  # stat_summary(fun = mean, geom = "point", shape = 23, size = 4) +
+  labs (
+    title = "Summit Times By Mortality",
+    subtitle = "(All Peaks)",
+    x = "Climber Mortality Outcome",
+    y = "Summit Time (24 hour clock)"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = .5),
+    plot.subtitle = element_text(size = 14, hjust = .5),
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, color = "black")
+  ) +
+  coord_flip()
+
+
+
+
+
+
+biz <- agrep("business", climbers_full$occupation)
+alp <- agrep("alpine", climbers_full$occupation)
+
+climbers_full <- climbers_full %>%
+  mutate(index = row_number()) 
+
+# Create datasets of just business people and just professional alpinists
+businesspeople <- climbers_full %>%
+  subset(index %in% biz) %>%
+  mutate(occ = "business")
+samp_size <- nrow(businesspeople)
+alpinists <- climbers_full %>%
+  subset(index %in% alp) %>%
+  mutate(occ = "alpinist")
+
+# Crate dataset with both businesspeople and alpinists
+occ <- rbind(businesspeople, alpinists)
+occ_length <- nrow(occ)
+
+# Construct observed difference in avg proportion of business people who summit and avg proportion of alpinists who summit
+BizAvg <- mean(as.numeric(businesspeople$msuccess)) # 41.7% of business people summit 
+AlpAvg <- mean(as.numeric(alpinists$msuccess)) # 47.4% of alpinists summit 
+obs <- BizAvg - AlpAvg # Businesspeople summit at a rate that is 5.7% lower than alpinists. 
+
+# Permutation test
+N <- 10000
+diffs <- numeric(N)    #empty vector to hold difference in percent success
+for (i in 1:N){
+  index <- sample(occ_length, samp_size)
+  bizavg <- mean(as.numeric(occ[index,]$msuccess))
+  alpavg <- mean(as.numeric(occ[-index,]$msuccess))
+  diffs[i] = bizavg - alpavg 
+}
+
+# Plot permutation results 
+hist(diffs, main = "Histogram of Simulated Rate Differences", xlab= "Differnce in Summit Rate for Business People vs Alpinists")
+abline(v=obs, col="red") # observed 
+
+```
+
+
+```{r}
+
+### OXYGEN ANALYSIS ###
+
+o2_success <- climbers_unique %>%
+  mutate(o2_use = case_when(o2_ratio == 1 ~ "Oxygen Always Used",
+                            o2_ratio == 0 ~ "Oxygen Never Used",
+                            TRUE ~ "Oxygen Sometimes Used")) %>%
+  select(climb_id, n_climb, n_success, o2_use, o2_ratio) 
+
+# we see that never using oxygen and always using oxygen make up the majority of the data
+table(o2_success$o2_use)
+
+# The first regression shows that, for people who use supplemental oxygen, for every 
+# additional climb they go on, they can expect to summit .9 mountains. i.e. if
+# someone goes on 10 climbs, we expect them to summit 9 peaks
+lm.o2_used <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Always Used"))
+summary(lm.o2_used)
+
+# However, for those that don't use supplemental oxygen, we only expect .35 
+# summits per climb, or between 3 and 4 summits per every 10 climbs
+lm.o2_notused <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Never Used"))
+summary(lm.o2_notused)
+
+# while those that use oxygen some for some fraction of their overall
+# climbs, they can expect to summit about 7 mountains per 10 climbs
+lm.o2_sometimes <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Sometimes Used"))
+summary(lm.o2_sometimes)
+
+
+# binning oxygen use into 3 distinct groups lends itself nicely to a 
+# visual comparison of the regression lines. Here we can see the 
+# disparity in the slope between the three groups
+ggplot(data = o2_success, aes(x = n_climb, y = n_success, color = o2_use, shape = o2_use)) +
+  
+  geom_point( size = 2) + 
+  
+  geom_smooth(method = lm, se = FALSE, fullrange = TRUE, size = .8) +
+  
+  scale_color_manual(values = c("cadetblue4", "firebrick4", "azure4")) +
+  
+  scale_shape_manual(values = c(19, 19, 24)) + 
+  
+  labs (
+    title = "Summit Success by Oxygen Use Over Multiple Climbs",
+    subtitle = "(All Peaks)",
+    x = "Number of Climbs",
+    y = "Number of Succesful Summits"
+  ) +
+  theme_classic() +
+  theme(
+    plot.title = element_text(size = 20, face = "bold", hjust = .5),
+    plot.subtitle = element_text(size = 14, hjust = .5),
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(size = 12, color = "black"),
+    axis.title = element_text(size = 14, color = "black"),
+    legend.title = element_blank()
+  ) 
+
+lm.success <- lm(n_success ~ o2_ratio + n_climb + died + calcage + sex, data = climbers_unique)
+summary(lm.success)
+
+
+
+
+# logit #
+
+summited <- climbers$msuccess
+mo2used <- climbers$mo2used
+
+
+plot(mo2used, summited,
+     main = "Oxygen Use Impact on Odds of Summiting",
+     xlab = "Oxygen Used (1 = yes, 0 = no)",
+     ylab = "Summited (1 = yes, 0 = no)")
+
+# use log likelihood function to estimate the parameters
+MLL<- function(alpha, beta) {
+  -sum( log( exp(alpha+beta*mo2used)/(1+exp(alpha+beta*mo2used)) )*summited
+        + log(1/(1+exp(alpha+beta*mo2used)))*(1-summited) )
+}
+
+# fit the model with initial guess of alpha = 0, beta = 0
+results<-mle(MLL, start = list(alpha = 0, beta = 0)) 
+results@coef
+# plot the regression curve
+curve( exp(results@coef[1]+results@coef[2]*x)/ (1+exp(results@coef[1]+results@coef[2]*x)),col = "blue", add=TRUE)
+
+
+summary(glm(msuccess~mo2used, family = "binomial", data = climbers))
+summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = climbers))
+
+
+```
+
+```{r}
+
+### WEATHER DATA ###
+
+basecamp <- read_csv("Downloads/Base_Camp/Base_Camp_20210630.csv") 
+
+basecamp <- basecamp %>%
+  mutate(time = as.POSIXct(TIMESTAMP, format = "%m/%d/%Y %H:%M")) %>% # converts character to date-time 
+  rename(humid = RH, # rename columns to more descriptive names 
+         temp = T_HMP, 
+         pressure = PRESS, 
+         precip = PRECIP)
+
+# Create new variables from our date-time variable 
+basecamp <- basecamp %>%
+  mutate(date = format(time, "%m/%d/%Y"),
+         month = format(time, "%m"), 
+         day = format(time, "%d"), 
+         year = format(time, "%Y"), 
+         hr = format(time, "%H"),
+         time_24 = format(time, "%H:%M"))
+
+# Construct a dataset with just the spring weather observations (2020 & 2021)
+spring_weather <- basecamp %>% 
+  filter(month == "03" | month == "04" | month == "05") %>% # the most popular season for expeditions is spring: March - May 
+  group_by(date) %>%
+  mutate(total_precip = sum(precip), # total precipitation over the course of a day 
+         min_temp = min(temp)) %>% # minimum temperature over the course of a day 
+  ungroup %>%
+  mutate(rainy_day = as.numeric(total_precip > 0), # rainy day if have any precipitation 
+         high_humidity = as.numeric(humid > mean(humid))) # high humidity day if above average humidity 
+
+
+
+# Let's plot the data and the regression line we calculated 
+ggplot(data = spring_weather, aes(x = temp, y = pressure)) + 
+  geom_point() + 
+  labs(title = "Spring Temperatures and Barometric Pressure at Everest Basecamp",
+       x = "Temperature (degrees C)",
+       y = "Barometric Pressure (hPa)") + 
+  geom_abline(intercept = b, slope = a, color="red", size=1.5)
+# Our regression line seems to be capturing the general relationshp between temperature and barometric pressure. 
+
+# Let's double check that a linear relationship is appropriate by examining the residual plot. 
+ggplot(data = spring_weather, aes(x = temp, y=resid_pressure)) + 
+  geom_point() +
+  labs(title= "Residual Plot for Pressure ~ Temperature", 
+       x= "Temperature (degrees C)",
+       y = "Residual") + 
+  geom_hline(yintercept = 0, color ="blue")
+# Our residuals aren't necessarily evenly distributed across temperature values. We see some extreme negative residuals (<-5) only between -10 and 0 degrees C, and there is less variation in residual magntitude at the extremes of our temperature range. Nevertheless, the residual plot doesn't suggest that a linear model isn't appropriate.
+
+
+# Because we are using a factor variable, it is easy to add a visualization of a 3rd variable. We can start here to see what results we might expect by following the same steps as above.
+ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high_humidity))) + 
+  geom_point() + 
+  labs(title = "Spring Temperatures and Barometric Pressure at Everest Basecamp",
+       x = "Temperature (degrees C)",
+       y = "Barometric Pressure (hPa)",
+       color = "High Humidity") 
+# I hypothesize that high humidity will not be a statistically significant predictor in our model. There is similar variation in both temperature and barometric pressure for high humidity and non-high humidity days. Also, we already know there is weak correlation between humidity variables and our outcome of barometric pressure from above. 
+
+
+
+
+
+### fourier ###
+# Since temperature can serve as a predictor for barometric pressure, let's see if we can model temperatures over the spring season.
+temp_2020 <- spring_weather[1:2207,]$temp # temperatures in 2020
+temp_2021 <- spring_weather[2208:4414,]$temp # temperatures in 2021
+avg_temp <- (temp_2020 + temp_2021)/2 # take the average of our 2 years of observations 
+month <- spring_weather[1:2207,]$month 
+day <- spring_weather[1:2207,]$day
+hr <- spring_weather[1:2207,]$hr
+avg_spring_temp <- cbind(month, day, hr, avg_temp) # dataframe with avg temp at date and time (i.e. avg temp on April 1 at 06:00)
+
+# We can use Fourier analysis to create models that match our temperature data to varying extents. 
+
+nhours <- nrow(avg_spring_temp); nhours # 2207 
+plot(1:nhours, avg_temp, type = "l", main = "Average temperatures in Spring", xlab="Hour index", ylab="Average temperature (in degrees C)") # line plot of temperature over the spring 
+# It looks like we are picking up mostly the daily variation in temperature but we can see that temperatures definitely rise as we get to the end of the spring season.
+
+# FUNCTIONS
+# Cosine and sine functions with m periods in 2207 hours
+myCos <- function(m) cos((1:nhours)*m*2*pi/nhours)
+mySin <- function(m) sin((1:nhours)*m*2*pi/nhours)
+# Fourier coefficient a_m
+coeffA <- function(m){
+  sum(avg_temp*2*myCos(m)/nhours)
+}
+# Fourier coefficient b_m
+coeffB <- function(m){
+  sum(avg_temp*2*mySin(m)/nhours)
+}
+# Takes a set number of coefficients and overlays the Fourier plot 
+plot_Fourier <- function(ncoeff) {
+  FourierA <- sapply(1:ncoeff,coeffA)
+  FourierB <- sapply(1:ncoeff,coeffB)
+  #Find the amplitude of the sum of the cosine and sine terms
+  Fourier <- sqrt(FourierA^2+FourierB^2)
+  Fourier
+  recon <- mean(avg_temp)
+  for (m in 1:ncoeff) {
+    recon <- recon + FourierA[m]*myCos(m)+FourierB[m]*mySin(m)
+  }
+  plot(1:nhours, avg_temp, type = "l", main = "Average temperatures in Spring", xlab="Hour index", ylab="Average temperature (in degrees C)")
+  points(1:nhours,recon, type = "l", col = "red",lwd = 2) 
+}
+
+
+plot_Fourier(3) 
+# We are now capturing the temperature trends at the start and end of spring. 
+
+# ncoeff = 13; Even though the 13th Fourier coefficient isn't large, there are approximately 13 weeks in the season so this would pick up weekly trends. 
+plot_Fourier(13)
+
+```
+
+```{r}
+
+### POWER ANALYSIS ###
+# graph, write-up #
+
+
+```
