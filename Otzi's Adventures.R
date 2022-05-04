@@ -312,7 +312,7 @@ pchisq(Chistat, 3, lower.tail = FALSE)
 
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
-### analysis of summit times and deaths ###
+### analysis of summit times ###
 
 # While getting to the summit (and returning safely) is the ultimate goal of
 # any expedition, what time the summit is reached also of great importance.
@@ -649,14 +649,14 @@ for (i in 1:N){
   diffs[i] <- DeadAvg - AliveAvg
 }
 mean(diffs) # should be, and is, close to zero
-
+hist(diffs, main = "Difference of Means", col = "cadetblue4", breaks = "FD", xlim = c(-2,4.5))
+abline(v = observed, col = "firebrick4")
 
 # calculating the p-value gives us a significant result. There is only about a 
 # 0.001 probability that a difference in means this large would arise by chance.
 # So, we conclude that climbers who ultimately died summit the mountain significantly
 # later in the day than those who survive, as was expected.
 pvalue <- (sum(diffs >= observed)+1)/(N+1); pvalue
-
 
 
 ###############################################################################
@@ -769,42 +769,91 @@ chisq.test(occ$occ, occ$msuccess, correct=F)
 # that supplemental oxygen has on climber outcomes.
 
 
+# first, define a function to do linear regression by projection matrix, 
+# and output the R-squared and regression coefficients
+reg_proj <- function(x, y) {
+  # create A matrix, a column of 1 and columns of predictor variables
+  # which constitute a basis for the subspace we project onto
+  A <- cbind(1, x)
+  
+  # Solve for the projection matrix, P.
+  P <- A %*% solve(t(A)%*%A) %*% t(A)
+  
+  # solve for regression coefficients
+  coeff <- solve(t(A)%*%A) %*% t(A) %*% y
+  
+  # P acting on y gives the predicted values. 
+  yhat <- P %*% y
+  
+  # calculate vector of residuals, (observed - predicted values)
+  res <- y - yhat
+  
+  # R squared is equal to the ratio of the variance of the dependent
+  # variables and the variance of predicted values
+  Rsq <- var(yhat)/var(y)
+  
+  # return R-squared and coefficients
+  return(list(paste0("R-Squared: ", round(Rsq[1],3)),
+              coeff))
+}
+
+
 # We start with a simple regression of the number of successful summits on the 
 # number of climbs someone goes on, and examine the slope of the line for three
 # groups: those who always use oxygen, those who never use oxygen, and those
-# who use oxygen some of the time
+# who use oxygen some of the time. Note these data (taken from climbers_unique)
+# are an aggregation of every climb that a particular climber attempts, 
+# rather than individual attempts on a peak by an individual climber
 
-# create a dataframe which identifies the three groups
-o2_success <- climbers_unique %>%
-  mutate(o2_use = case_when(o2_ratio == 1 ~ "Oxygen Always Used",
-                            o2_ratio == 0 ~ "Oxygen Never Used",
-                            TRUE ~ "Oxygen Sometimes Used")) %>%
-  select(climb_id, n_climb, n_success, o2_use, o2_ratio) 
+# create 3 small dataframes holding the number of climbs and number of successful summits
+# for each group
+o2_used <- climbers_unique %>% filter(o2_ratio == 1) %>% select(n_climb, n_success)
+o2_notused <- climbers_unique %>% filter(o2_ratio == 0) %>% select(n_climb, n_success)
+o2_sometimes <- climbers_unique %>% filter(o2_ratio != 0 & o2_ratio != 1) %>% select(n_climb, n_success)
 
-# we see that never using oxygen and always using oxygen make up the majority of the data
-table(o2_success$o2_use)
 
 # The first regression shows that, for people who use supplemental oxygen, for every 
 # additional climb they go on, they can expect to summit .9 mountains. i.e. if
 # someone goes on 10 climbs, we expect them to summit 9 peaks
-lm.o2_used <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Always Used"))
-summary(lm.o2_used)
+# We have quite a large R-squared value of about .82, so we can explain about 82%
+# of the variance in number of summits using only the number of climbs
+reg_proj(o2_used$n_climb, o2_used$n_success)
+# we see that our projection matrix approach matches R's built in function,
+# and we also see that the number of climbs is statistically significant 
+lm.o2_used <- lm(n_success ~ n_climb, data = o2_used); summary(lm.o2_used)
+
 
 # However, for those that don't use supplemental oxygen, we only expect .35 
 # summits per climb, or between 3 and 4 summits per every 10 climbs
-lm.o2_notused <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Never Used"))
+# and in this model, we can only explain about 32% of the variance in
+# summit success using number of climbs
+reg_proj(o2_notused$n_climb, o2_notused$n_success)
+# again, our values match R, and number of climbs is significant
+lm.o2_notused <- lm(n_success ~ n_climb, data = o2_notused)
 summary(lm.o2_notused)
 
 # while those that use oxygen some for some fraction of their overall
 # climbs, they can expect to summit about 7 mountains per 10 climbs
-lm.o2_sometimes <- lm(n_success ~ n_climb, data = o2_success %>% filter(o2_use == "Oxygen Sometimes Used"))
+# here, we can explain about 79% of the variance in summit success
+# using only the number of climbs
+reg_proj(o2_sometimes$n_climb, o2_sometimes$n_success)
+# again, our values match R, and number of climbs is significant
+lm.o2_sometimes <- lm(n_success ~ n_climb, data = o2_sometimes)
 summary(lm.o2_sometimes)
 
+
+# create a dataframe which identifies the three groups to compare
+# the slope of regression lines in a plot
+o2_success_plot <- climbers_unique %>%
+  mutate(o2_use = case_when(o2_ratio == 1 ~ "Oxygen Always Used",
+                            o2_ratio == 0 ~ "Oxygen Never Used",
+                            TRUE ~ "Oxygen Sometimes Used")) %>%
+  select(climb_id, n_climb, n_success, o2_use, o2_ratio)
 
 # binning oxygen use into 3 distinct groups lends itself nicely to a 
 # visual comparison of the regression lines. Here we can see the 
 # disparity in the slope between the three groups
-ggplot(data = o2_success, aes(x = n_climb, y = n_success, color = o2_use, shape = o2_use)) +
+ggplot(data = o2_success_plot, aes(x = n_climb, y = n_success, color = o2_use, shape = o2_use)) +
   
   geom_point( size = 2) + 
   
@@ -839,17 +888,28 @@ ggplot(data = o2_success, aes(x = n_climb, y = n_success, color = o2_use, shape 
 # our variable of interest, which we expect to enter positively. We control 
 # for number of climbs, the age and sex of the climber, and whether that climber
 # died
-lm.success <- lm(n_success ~ o2_ratio + n_climb + died + calcage + sex, data = climbers_unique)
-summary(lm.success)
 
+# create matrix of predictor variables, convert "sex" into a numeric dummy,
+# and filter out ages entered as 0
+o2_fullreg <- climbers_unique %>% 
+  mutate(sex = ifelse(sex == "M", 1, 0)) %>%
+  filter(calcage > 0 )
+
+A1 <- o2_fullreg %>% select(o2_ratio, n_climb, died, calcage, sex) %>% as.matrix()
+
+# using the projection matrix approach 
+reg_proj(A1, o2_fullreg$n_success)
 # with this, we see again the power of supplemental oxygen use in helping
 # climbers summit mountains, as our oxygen use ratio enters the most positively
-# into our regression, even more so than the number of climbs performed.
+# into our regression, holding other variables constant, even more so than the number of climbs undertaken.
 # The dummy variable for whether a climber died or not tells us, as expected
-# that if a climber dies they summit fewer mountains overall.Age enters 
+# that if a climber dies they summit fewer mountains overall. Age enters 
 # negatively as well, though the coefficient is minuscule. Likewise men have
 # a slight advantage over women
 
+# and we see it matches the R function, and that all of our variables enter
+# significantly in the model
+lm.success <- lm(n_success ~ o2_ratio + n_climb + died + calcage + sex, data = o2_fullreg); summary(lm.success)
 
 ###############################################################################
 ### POINTS EARNED ###
@@ -908,8 +968,7 @@ sex <- logit_reg %>% mutate(sex = ifelse(sex == "M", 1, 0)) %>% pull(sex)
 hired <- logit_reg$hired %>% as.numeric()
 age <- logit_reg$calcage
 
-# we start by using an expanded version of the log likelihood method to estimate
-# more parameters
+# we start by using an expanded version of the log likelihood method to estimate more parameters
 MLL<- function(alpha, beta1, beta2, beta3, beta4, beta5) {
   -sum( log( exp(alpha + beta1*mo2used + beta2*main_season + beta3*sex + beta4*hired + beta5*age)/
                (1+exp(alpha + beta1*mo2used + beta2*main_season + beta3*sex + beta4*hired + beta5*age)) )*summited
@@ -921,7 +980,8 @@ results<-mle(MLL, start = list(alpha = 0, beta1 = 0, beta2 = 0, beta3 = 0 , beta
 results@coef
 # checking against R's built in function once again shows close agreement, and
 # also significance for every variable except sex
-summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = logit_reg))
+logit.o2_full <- glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = logit_reg); summary(logit.o2_full)
+exp(coef(logit.o2_full))
 # we see again that use of oxygen greatly increases the odds of summiting, 
 # while hired climbers are also at increased odds of summiting. Meanwhile those
 # climbing during the spring are at decreased odds of summiting (this may be due

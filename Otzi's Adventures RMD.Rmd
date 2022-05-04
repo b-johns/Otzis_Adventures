@@ -380,6 +380,31 @@ ggplot(data = summiters, aes(x = death, y = summit_time)) +
   ) +
   coord_flip()
 
+# split data into survivors and not
+id_death <- which(summiters$death == "TRUE")
+dead <- summiters[id_death,]
+alive <- summiters[-id_death,]
+
+# means for each group
+mean_dead <- mean(dead$summit_time); mean_dead
+mean_alive <- mean(alive$summit_time); mean_alive
+
+# observe about a 4 hour difference in means, which seems large
+observed <- mean_dead - mean_alive; observed
+
+# permutation test
+N <- 1000
+diffs <- numeric(N)
+for (i in 1:N){
+  Death <- sample(summiters$death)   #permuted mortality column
+  DeadAvg <- sum(summiters$summit_time*(Death == "TRUE"))/sum(Death == "TRUE")
+  AliveAvg <- sum(summiters$summit_time*(Death == "FALSE"))/sum(Death == "FALSE")
+  diffs[i] <- DeadAvg - AliveAvg
+}
+mean(diffs) # should be, and is, close to zero
+hist(diffs, main = "Difference of Means", col = "cadetblue4", breaks = "FD", xlim = c(-2,4.5))
+abline(v = observed, col = "firebrick4")
+
 
 
 
