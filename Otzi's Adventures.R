@@ -1002,7 +1002,7 @@ exp(coef(logit.o2_full))
 # Barometric pressure affects oxygen saturation: specifically, lower barometric pressure reduces oxygen saturation. So, analyzing the weather patterns at Everest's basecamp can help us identify times during the hiking season where climbers will potentially require greater supplemental oxygen. 
 
 # Load dataset with hourly weather readings from Everest basecamp starting Nov 1, 2019 to Jun 30, 2021
-basecamp <- read_csv("Downloads/Base_Camp/Base_Camp_20210630.csv") 
+basecamp <- read_csv("Base_Camp_20210630.csv") 
 
 # Reformat and rename variables 
 basecamp <- basecamp %>%

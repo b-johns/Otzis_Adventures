@@ -740,7 +740,7 @@ Akaike Inf. Crit. & 14,284.240 \\
 
 ### WEATHER DATA ###
 
-basecamp <- read_csv("Downloads/Base_Camp/Base_Camp_20210630.csv") 
+basecamp <- read_csv("Base_Camp_20210630.csv") 
 
 basecamp <- basecamp %>%
   mutate(time = as.POSIXct(TIMESTAMP, format = "%m/%d/%Y %H:%M")) %>% # converts character to date-time 
