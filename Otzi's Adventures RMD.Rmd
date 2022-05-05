@@ -874,10 +874,21 @@ plot_Fourier(13)
 
 ```
 
-```{r}
+In the final section of our analysis, we design a randomized controlled trial that could provide an estimate of the causal effect of supplemental oxygen use on mortality. We are interested specifically in whether the risk of death decreases when using oxygen. No one likes dying, so for reasons of ethics and liability, we would like to minimize the risk of it happening on our trips. Moreover, here at Otzi’s Adventures, we sell supplemental oxygen, so solid evidence that it reduces mortality risk could be a great marketing asset in our vertically integrated company.
 
-### POWER ANALYSIS ###
-# graph, write-up #
+Our study design assumes that we randomize entire expeditions to treatment and control groups, not individual climbers. Otherwise, climbers within the same expedition would have differing treatment statuses, which might create confusion and logistical problems. Moreover, our treatment condition is the requirement to use oxygen, in contrast to the control condition of being able to choose oxygen or not (prohibiting anyone from using oxygen would be unethical). If some climbers on an expedition were required to use oxygen, perhaps this would encourage all climbers to use oxygen, eliminating the identifying variation in oxygen use that we need to estimate a causal effect. Our primary design challenge then is to identify the number of expeditions that we must randomize to achieve 80% statistical power (hopefully making us eligible for NIH funding), assuming 50:50 allocation between treatment and control.
 
-
+```{r, echo=FALSE}
+knitr::include_graphics("final_power_graph.png")
 ```
+
+To estimate required sample, we first run a multilevel linear probability model on past data, with death as the outcome. We allow each expedition to have a separate intercept and separate coefficient on supplemental oxygen use that each vary randomly around some population mean. Next, to get a sample size number using a classical approach, we exploit the fact that if you have a true effect 2.8 standard deviations away from the assumed effect under a null hypothesis (in our case, this is 0, or no effect), then you will have 80% power, assuming an alpha value of 5% and a two-tailed test. We take the standard error formula for a treatment effect in a cluster-randomized trial, re-arrange to solve for number of clusters (i.e., expeditions), and substitute in the population variance in the coefficient on oxygen use along with variance due to estimation in a “typical” expedition of mean size and mean oxygen use rate. This approach yields a sample size requirement of ~80 expeditions.
+
+As a check, we estimate sample needs using a second, simulation-based approach. Here, we use the results from the multilevel model to parameterize a multivariate normal distribution of expedition intercepts and slopes on oxygen use. We repeatedly sample from this distribution. Next, we use each expedition’s parameters to parameterize a probability value p for a Bernoulli distribution from which to sample climber-level observations. Lastly, we estimate a model, to see whether we detect the true treatment effect we baked into the multivariate normal distribution. The proportion of iterations that result in a statistically significant treatment estimate is the power for that sample size. Finally, we plot power as a function of sample size in a graph. As the reader will note, the simulations suggest we need a sample of over 1000 expeditions for 80% power, in contrast to the 80 expeditions suggested by the classical approach, plotted as a red line. We suspect that this is due to functional form: the linear probability model does not bound probability predictions at 0. We had to truncate to 0 when the predicted value was negative during the simulations, effectively reducing our assumed treatment effect, and thereby raising sample size requirements for fixed power. The classical approach is ignorant of this constraint because it does not require actually re-sampling data, hence the classical results are likely misleading.
+
+Note: The code that generated the power graph is not included in this .rmd file. The full code takes approximately two hours to run, so we decided to just leave it in the main Otzi’s Adventures.R script created for our analysis.
+
+
+
+
+
