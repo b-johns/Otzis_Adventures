@@ -776,9 +776,46 @@ We are interested in the utilization of supplemental oxygen to support climbers 
     Barometric \enspace Pressure = \beta_1 Temperature + \epsilon
 \end{equation}
 
+\begin{table}[!htbp] \centering 
+  \caption{Barometric Pressure and Temperature} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+\\[-1.8ex] & Barometric pressure (hPa) \\ 
+\hline \\[-1.8ex] 
+ Temperature (degrees C) & 0.347$^{***}$ \\ 
+  & (0.007) \\ 
+  & \\ 
+ Constant & 534.027$^{***}$ \\ 
+  & (0.048) \\ 
+  & \\ 
+\hline \\[-1.8ex] 
+Observations & 4,414 \\ 
+R$^{2}$ & 0.336 \\ 
+Adjusted R$^{2}$ & 0.335 \\ 
+Residual Std. Error & 1.926 (df = 4412) \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{1}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table} 
+
 We find a statistically coefficient on temperature of 0.347, meaning that for every 1 degree Celsius increase in temperature we expect barometric pressure to increase by 0.347 hPa. And, 34\% of the variation in barometric pressure can be explained by the variation in temperature. \\
 
 ```{r}
+m1 <- rep(1, length(spring_weather)) # vector of 1s 
+m2 <- spring_weather$temp # temperature 
+m3 <- spring_weather$pressure # pressure 
+
+A <- cbind(m1, m2) # vector of 1s, temperature
+A_t <- t(A) # transpose of A
+B <- A_t%*%A # A_t %*% A
+B_inv <- solve(B); B_inv # invert B 
+coeff <- B_inv%*%A_t%*%m3; coeff # coefficients come from B_inv %*% A_t %*% pressure
+b <- coeff[1,1]; b # intercept: 534.027. Interpretation: If it is 0 degrees Celsius, we expect the barometric pressure to be 534.027 hPa
+a <- coeff[2,1]; a # slope: 0.347086. Interpretation: For every 1 degree increase in temperature, we expect the barometric pressure to increase by 0.37 hPa.
+
 # Let's plot the data and the regression line we calculated 
 ggplot(data = spring_weather, aes(x = temp, y = pressure)) + 
   geom_point() + 
@@ -803,6 +840,34 @@ Then, we estimate a bi-variate model that uses temperature and binary variable o
 \begin{equation}
     Barometric \, Pressure = \beta_1 Temperature + \beta_2 High \, Humidity+ \epsilon
 \end{equation}
+
+\begin{table}[!htbp] \centering 
+  \caption{Barometric Pressure by Temperature and High Humidity} 
+  \label{} 
+\begin{tabular}{@{\extracolsep{5pt}}lc} 
+\\[-1.8ex]\hline 
+\hline \\[-1.8ex] 
+\\[-1.8ex] & Barometric pressure (hPa) \\ 
+\hline \\[-1.8ex] 
+ Temperature (degrees C) & 0.346$^{***}$ \\ 
+  & (0.007) \\ 
+  & \\ 
+ High Humidity & 0.647$^{***}$ \\ 
+  & (0.058) \\ 
+  & \\ 
+ Constant & 533.665$^{***}$ \\ 
+  & (0.057) \\ 
+  & \\ 
+\hline \\[-1.8ex] 
+Observations & 4,414 \\ 
+R$^{2}$ & 0.354 \\ 
+Adjusted R$^{2}$ & 0.354 \\ 
+Residual Std. Error & 1.899 (df = 4411) \\ 
+\hline 
+\hline \\[-1.8ex] 
+\textit{Note:}  & \multicolumn{1}{r}{$^{*}$p$<$0.1; $^{**}$p$<$0.05; $^{***}$p$<$0.01} \\ 
+\end{tabular} 
+\end{table}
 
 We unexpectedly find that the coefficient on high humidity of 0.647 is statistically significant. This means we expect barometric pressure to be 0.647 hPa higher on days with high humidity, holding temperature constant. However, our R-squared coefficient of determination only increase 0.35, so adding the second predictor only increases about power to explain variation in barometric pressure by 1 percentage point. We ultimately conclude that adding the high humidity predictor 
 isn't advantageous, and we should utilizing our uni-variate model. 
