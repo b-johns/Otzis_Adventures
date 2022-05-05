@@ -1,0 +1,51 @@
+Note: Each location is approximate start in the long .R script and likely represents just one example of the item ,,
+,,
+Requirements,Status,Location of Example in Code
+Required dataset standards,,
+A dataframe.,,"Line 22 (our climbers_full dataset is a dataframe with at least two categorical/logical columns, at least two numeric columns, and at least 20 rows)"
+At least two categorical or logical columns.,,
+At least two numeric columns.,,
+"At least 20 rows, preferably more, but real-world data may be limited.",,
+Required graphical displays (all graphs must be colored and nicely labeled),,
+A barplot.,,Line 207
+A histogram.,,Line 342
+A probability density graph overlaid on a histogram.,,Line 387
+A contingency table.,,Line 722
+Required analysis,,
+A permutation test.,,Line 642
+A p-value or other statistic based on a distribution function.,,Line 228
+Analysis of a contingency table.,,Line 725
+"Comparison of analysis by classical methods (chi-square, CLT) and simulation methods.",,Line 701 vs 722 
+Required submission uploads,,
+A .csv file with the dataset,,In Zip file 
+"A long, well-commented script that loads the dataset, explores it, and does all the analysis.",,In Zip file 
+A shorter .Rmd with compiled .pdf or .html file that presents highlights in ten minutes.,,In Zip file 
+A one-page handout that explains the dataset and summarizes the analysis.,,In Zip file 
+,,
+Other Points ,,
+Creativity or complexity (max 10),,
+"A data set with lots of columns, allowing comparison of many different variables.",,Line 22 (climbers_full dataset has over 50 columns)
+A data set that is so large that it can be used as a population from which samples are taken,,Line 22 (climbers_full dataset is based off a database that contains all obervations of Himalyan climbers which is in fact the population) 
+A one-page document that discusses ethical issues related to collection of the dataset.,,In zip file 
+A one-page document that discusses ethical issues raised by conclusions reached from analysis of the data.,,In zip file 
+A graphical display that is different from those in the textbook or in the class scripts.,,Line 507 - survival plots 
+"Appropriate use of R functions for a probability distribution other than binomial, normal, or chi-square.",,Line 354 - use of gamma distribution (also have example for geometric at Line 168)
+Appropriate use of integration to calculate a significant result.,,
+A convincing demonstration of a relationship that might not have been statistically significant but that turns out to be so.,,Line 1099
+A convincing demonstration of a relationship that might have been statistically significant but that turns out not to be so.,,
+Professional-looking software engineering (e.g defining and using your own functions).,,"Line 360, 1145, 1338, 1530, 1587"
+"Nicely labeled graphics using ggplot, with good use of color, line styles, etc., that tell a convincing story.",,"Line 604, 856, 1075"
+An example where permutation tests or other computational techniques clearly work better than classical methods.,,Line 1617
+"Appropriate use of novel statistics (e.g. trimmed mean, maximum or minimum, skewness, ratios).",,Line 152 (ratio) 
+Use of linear regression.,,Line 1039 
+(2 points) Integration of well-written LaTeX,,"See RMD file for contingency table, modeling equations, and regression output that utilize LaTeX"
+(2 points) Integration of an R Shiny application using techniques taught in Paul’s weekly classes,,
+Calculation and display of a logistic regression curve.,,Line 940
+Appropriate use of covariance or correlation.,,Line 1035
+"Use of theoretical knowledge of chi-square, gamma, or beta distributions.",,Line 317 - start for gamma 
+Use of theoretical knowledge of sampling distributions.,,Line 1563 (sampling required throughout power analysis)
+A graphical display that is different from those in the class scripts.,,"Is this the same as the item about a different graphical display? If so, we did it"
+Calculation of a confidence interval.,,Line 1218
+Appropriate use of quantiles to compare distributions.,,Line 479 - Q-Q plot
+A video of the short script is posted on YouTube and a link to it is left in your long script.,,
+Subjective impression,,
