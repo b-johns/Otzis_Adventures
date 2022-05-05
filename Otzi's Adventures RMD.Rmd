@@ -7,7 +7,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 
 # Install packages
 # install.packages("survival")
@@ -27,7 +27,7 @@ library(survminer)
 
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 
 ### READ IN DATA ### 
 
@@ -35,7 +35,7 @@ df <- climbers_full <- read_csv("climbers_full.csv")
 
 ```
 
-```{r}
+```{r, echo=FALSE, include=FALSE}
 
 ### DATA CLEANING ###
 
@@ -125,7 +125,7 @@ all_peaks <- climbers$peakid %>% unique()
 
 Given our knowledge of the geometric distribution, it makes sense to attempt to model the number of expeditions a climber goes on before dying geometrically. We have discrete, positive data, and want to count the number of trials (climbs) until a condition is met (death). Note that it is possible (preferable, even) that a climber does not die while attempting a peak. In this setup, we merely assign this outcome a probability of 0. \\
 Using R's \emph{fitdist} function on, we estimate the parameter for a geometric distribution based on the data to be $p = 0.31$, which implies a climber who ultimately dies can expect to attempt about three climbs before dying. However, when we compare our observed data with values from the theoretical distribution by binning and running a Chi-Square test, the results ultimately indicate that this data is not consistent with a geometric distribution. The discrepancy between the observed and expected values is clear to see in the joint barplot, where the expected value for one climb is much lower than observed, while for two or more climbs, the expected value is consistently higher. 
-```{r}
+```{r, echo=FALSE}
 
 ################################################################################
 # Fitting Distributions 
@@ -169,7 +169,7 @@ With no luck fitting a distribution on the number of climbs one person attempts 
 
 Using R's \emph{fitdist} function again, we estimate the parameter based on this data to be $p = 0.54$, for an expected value of almost two successful summit attempts before death. We again bin our observed and expected values and run a Chi-Square test, which this time indicates the data is, in fact consistent with a geometric distribution. Looking at the joint barplot of observed and expected, we do see quite close agreement throughout the distribution. So, climbers who ultimately die can expect to summit about two mountains, with a variance of about $1.6$.
 
-```{r}
+```{r, echo=FALSE}
 
 summits_b4_death <- climbers_unique %>%
   filter(died == 1) %>% 
@@ -204,7 +204,7 @@ barplot(rbind(obs_bin, exp_bin),
 ```
 
 Reaching the summit and returning safely are the ultimate goals of any mountaineering expedition, and the time the summit is reached can have substantial implications for the safety of the descent. Most climbers seek to time their summit push to arrive by late morning, in order to avoid descending in darkness or during the common late afternoon storms. We will explore this relationship between summit times and safety in greater depth later, but for now we attempt to fit a distribution to the summiting times for climbers on each peak individually and across all eight combined. In theory, modeling this data with a gamma distribution makes the most sense. We have all non-negative values, and we expect the data to be skewed right with a peak that rises somewhat rapidly (as the majority of climbers summit in the mid-to-late morning) before falling off exponentially (as summiting later and later in the day is more and more dangerous). Indeed, looking at a histogram of summit time across all eight peaks, we observe this general shape. \\
-```{r}
+```{r, echo=FALSE}
 
 summiters <- climbers %>% 
   filter(msuccess == TRUE,
@@ -231,7 +231,7 @@ hist(summiters$summit_time,
 
 For each peak, we estimate the shape and rate parameters using \emph{fitdist}, and check the fit of the observed data to the expected values given our estimated parameters using a comparison by deciles approach. The results show that, in general summit times cannot be reliably modeled by a gamma distribution. Only one peak, Lhotse, returned a p-value large enough to suggest that the data may come from a gamma distribution. Given the estimated parameters for Lhotse (shape $8.1$, rate $0.82$), our expected value for summit time is just a little before 10am, with a 12 hour variance.
 
-```{r}
+```{r, echo=FALSE}
   # vector of summit times
   stime <- summiters %>% filter(peakid %in% c("LHOT")) %>% pull(summit_time)
   sname <- summiters %>% filter(peakid %in% c("LHOT")) %>% pull(peakname) %>% unique()
@@ -256,7 +256,7 @@ For each peak, we estimate the shape and rate parameters using \emph{fitdist}, a
 
 Beta distributions can be applied to modeling continuous random variables whose values range from 0 to 1. Although the initial climber dataset does not contain any variables for which the beta distribution would be appropriate, we create a number of expedition-level variables representing proportions. One of these variables is the proportion of climbers on an expedition who are male. The beta distribution that we estimate from the data generally matches the distribution we observe. However, a chi-sq goodness of fit test shows that the estimated beta distribution does not accurately model the proportion of males climbers in an expedition. In the Q-Q plot, we see that the failure of the beta distribution is likely due to the large portion of our observations (~36\%) at the upper bound of 1. \\
 
-```{r}  
+```{r, echo=FALSE}  
   
   
   
@@ -305,7 +305,7 @@ curve(y, to=1, col="red", add=TRUE)
 ```
 
 Survival plots, common in epidemiology, display the probability of survival past a point in time. Interestingly, The survival function itself is equal to (1 - CDF); so, the survival plots are complementary to our well-known CDF plots. Rather than using time, we adapt the survival plot to show the probability that a climber reaches at least a certain height on Mt. Everest. For climbers who have recorded personal high point, approximately 75\% reach the peak of Mt. Everest at 8849m. The probability of reaching point decreases rather steadily from base camp to the summit of Everest, indicating that climbers don't face a universal obstacle on the climb up. We see that male climbers are more likely to reach higher evaluations than female climbers, with the average male climber reaching \~8180m compared to the average female climber at \~7680m. Unsurprising for a physical feat like mountaineering, we find that younger climbers have greater success reaching higher elevations and the peak. Our cohort of climbers who are under 18 summit over 80\% of the time; this is assuredly a consequence of selection, as the few children who climb Everest must be heavily vetted to ensure their fitness for the task. On the other hand, climbers over 65 only reach the summit about 25\% of the time. We observe climbers designated as "expedition leaders" reach heights above 7000m at lower rates than those without the designation. This is an unexpected finding, as one might think that leaders would be most capable of climbing. We suspect that there is a practical explanation for this, such as leaders going on multiple expeditions and not needing to summit every time or needing to stay behind with climbers who decide not to continue climbing. We find that probability of reaching a given height is similar across the years of our data, with one major exception. In 2015, no climber reaches the peak of Everest and almost no one goes above 7000m. With a bit of investigation, we learn that there was a major earthquake that set off a series of avalanches that resulted in the premature end of the climbing season. Across all years, the popular spring climbing season has the best outcomes, while those who climb in the winter have 0\% probability of reaching the summit. \\
-```{r}
+```{r, echo=FALSE}
 
 
 ever <- climbers_full %>%
@@ -373,7 +373,7 @@ Do people that die on their climbs summit later than those who survive? We expec
 
 Graphically, we can see the disparity between the summit times of those who live and those who die with a simple boxplot, which gives us an initial indication that there is likely a significant difference in summiting time between these groups. The median climber who survived summited around 8am, while those who died were closer to noon or 1pm. The interquartile ranges only overlap slightly, and only beginning of the outliers amongst the survivors summit around the same time as the 75\textsuperscript{th} percentile for those who died.\\
 
-```{r}
+```{r, echo=FALSE}
 
 ### permutation tests ###
 
@@ -402,7 +402,7 @@ ggplot(data = summiters, aes(x = death, y = summit_time)) +
 
 Next, we conduct a permutation to test whether those who died summit significantly later on average than those who survive. The mean summiting times amongst climbers who died is around 12:30pm, while the average for survivors is around 8:30pm. This four-hour difference seems quite large, and when we run the permutation test, we can see graphically how far out on the histogram of differences in mean the observed value is. Our p-value is $0.001$, which indicates that those who died summited significantly later on average than those who survive, as there is only a $0.001$ probability that we would observe such a large difference due to chance. This further highlighting the importance of early summits and turnaround times.
 
-```{r}
+```{r, echo=FALSE}
 
 # split data into survivors and not
 id_death <- which(summiters$death == "TRUE")
@@ -442,7 +442,7 @@ Expeditions up these "8000ers" are no small tasks, and climbers might have any n
     \hline
 \end{tabular}
 \\
-```{r}
+```{r, echo=FALSE}
 
 
 biz <- agrep("business", climbers_full$occupation)
@@ -489,7 +489,7 @@ Altitudes above 8000m are referred to as the "death zone" in mountaineering, bec
 
 First, we perform a simple regression, using data for individual climbers, aggregating over all of their attempted climbs. We regress the total number of summits a climber achieves on the total number of climbs they attempt, while conditioning on their oxygen use ratio (number of climbs using oxygen over total number of climbs). While the number of climbs is positively correlated with the number of summits achieved in general, the slope of the regression line varies greatly depending on oxygen use. The model predicts that those who always use oxygen (oxygen ratio of 1) can expect to summit about nine mountains for every 10 climbs they attempt, while those who never use oxygen (oxygen ratio of 0) can only expect to summit between three and four mountains for every 10 climbs. For climbers who use oxygen some of the time (oxygen ratio between 0 and 1) we predict about seven summits per 10 climbs, though there is likely large variation in this depending on where in the ratio range a particular climber falls. \\
 
-```{r}
+```{r, echo=FALSE}
 
 ### OXYGEN ANALYSIS ###
 
@@ -576,7 +576,7 @@ Residual Std. Error & 0.450 (df = 3479) & 0.447 (df = 3622) & 1.459 (df = 1742) 
 \end{tabular} 
 \end{table} 
 
-```{r}
+```{r, echo=FALSE}
 
 lm.success <- lm(n_success ~ o2_ratio + n_climb + died + calcage + sex, data = climbers_unique)
 # summary(lm.success)
@@ -636,7 +636,7 @@ However, to best understand oxygen's impact on summit success, it may be best to
 \end{align*}
 Where \emph{msuccess} is a binary variable for whether a climber summited on a particular climb (1-yes, 0-no), and \emph{mo2used} is a binary variable for whether or not they used oxygen on that climb (1-yes, 0-no). From the graph, we see that people use use oxygen are at increased odds of summiting, and estimating the model provides striking results. Oxygen use enters significantly in the model, and when we calculate the odds ratio of summiting based on oxygen use, we get $e^{3.42} = 30.5$, indicating that those who use oxygen are at over 30 times the odds of summiting as those who do not. \\
 
-```{r}
+```{r, echo=FALSE}
 # logit #
 
 summited <- climbers$msuccess
@@ -685,7 +685,7 @@ Akaike Inf. Crit. & 15,983.170 \\
 \end{tabular} 
 \end{table}
 
-```{r}
+```{r, echo=FALSE}
 
 # summary(glm(msuccess~mo2used, family = "binomial", data = climbers))
 # summary(glm(msuccess ~ mo2used + main_season + sex + hired  + calcage, family = "binomial", data = climbers))
@@ -736,7 +736,7 @@ Akaike Inf. Crit. & 14,284.240 \\
 \end{tabular} 
 \end{table} 
 
-```{r}
+```{r, echo=FALSE}
 
 ### WEATHER DATA ###
 
@@ -803,7 +803,7 @@ Residual Std. Error & 1.926 (df = 4412) \\
 
 We find a statistically coefficient on temperature of 0.347, meaning that for every 1 degree Celsius increase in temperature we expect barometric pressure to increase by 0.347 hPa. And, 34\% of the variation in barometric pressure can be explained by the variation in temperature. \\
 
-```{r}
+```{r, echo=FALSE}
 m1 <- rep(1, length(spring_weather)) # vector of 1s 
 m2 <- spring_weather$temp # temperature 
 m3 <- spring_weather$pressure # pressure 
@@ -881,7 +881,7 @@ Residual Std. Error & 1.899 (df = 4411) \\
 We unexpectedly find that the coefficient on high humidity of 0.647 is statistically significant. This means we expect barometric pressure to be 0.647 hPa higher on days with high humidity, holding temperature constant. However, our R-squared coefficient of determination only increase 0.35, so adding the second predictor only increases about power to explain variation in barometric pressure by 1 percentage point. We ultimately conclude that adding the high humidity predictor 
 isn't advantageous, and we should utilizing our uni-variate model. 
 
-```{r} 
+```{r, echo=FALSE} 
 
 # Because we are using a factor variable, it is easy to add a visualization of a 3rd variable. We can start here to see what results we might expect by following the same steps as above.
 ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high_humidity))) + 
@@ -895,7 +895,7 @@ ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high
 ```
 We now have an indirect pathway for predicting the need for supplemental oxygen: at lower temperatures, the barometric pressure is lower, and the oxygen saturation is lower. We only expect to hold expeditions during the spring hiking season (March - May). Therefore, we will look at our average temperature readings for the spring season to ascertain the average temperature at Everest basecamp and seasonal variation in the temperature. We take a random samples of 50 temperature readings to construct 95\% confidence intervals for the average temperature. We very reliably contain the true population mean of -8.48 degree Celsius in our confidence intervals. But, we find that the underlying temperatures do not follow a normal distribution so we end up overestimating more often then underestimating. We apply Fourier analysis to our temperature data. Using the first three coefficients (that correspond to our 3 months of spring data), we are able to capture the overall seasonal trend. Temperature is lower in March into the beginning of April and reaches season highs in mid-May. Yet, our models seems to have issues with estimating temperatures at the beginning and end of the season. When we increase the number of coefficients to 13 (to correspond to the 13 weeks of data), we better approximate our data but without getting into the daily variation of temperature. We would likely want to use a model that incorporates between 3 and 13 Fourier coefficients to predict temperature at any point in the spring. \\
 
-```{r}
+```{r, echo=FALSE}
 ### fourier ###
 # Since temperature can serve as a predictor for barometric pressure, let's see if we can model temperatures over the spring season.
 temp_2020 <- spring_weather[1:2207,]$temp # temperatures in 2020
