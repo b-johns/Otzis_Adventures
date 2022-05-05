@@ -2,8 +2,8 @@
 # Otzi's Adventures: helping you achieve Himalaya supremum in a compact budget
 ################################################################################
 # Install packages
-install.packages("survival")
-install.packages("survminer")
+# install.packages(c("survival", "survminer", "dplyr", "lme4", "ggplot2", "tidyverse", "stats4", "readr"))
+
 
 # Load libraries
 library(dplyr)

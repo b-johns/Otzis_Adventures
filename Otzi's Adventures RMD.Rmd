@@ -10,8 +10,7 @@ knitr::opts_chunk$set(echo = FALSE, include = TRUE, warning = FALSE, message = F
 ```{r, echo=FALSE, include=FALSE}
 
 # Install packages
-# install.packages("survival")
-# install.packages("survminer")
+# install.packages(c("survival", "survminer", "dplyr", "lme4", "ggplot2", "tidyverse", "stats4", "readr"))
 
 # Load libraries
 library(dplyr)
@@ -122,6 +121,10 @@ climbers_unique <- climbers %>% distinct(climb_id, .keep_all = TRUE)
 all_peaks <- climbers$peakid %>% unique()
 
 ```
+# Introduction
+5000 years ago, tragedy struck in the Tyrol when a man now known to the world as Otzi the Iceman was killed 3000 meters up in the mountains. There he remained for centuries, his body naturally mummified, until its discovery in 1991. Otzi was not the first - and would not be the last - to perish so high above the Earth, as humankind remains fascinated by mountains and surmounting their many dangers. Perhaps none capture the imagination so much as the "8000ers", the 14 mountains on Earth stretching above 8000 meters. It at this point (the "death zone", as it's called) that oxygen levels in the air become too low to sustain life, and many climbers elect to use supplemental oxygen to assist their efforts. They are the ultimate test in high-altitude mountaineering, and climbing any one of them is a serious undertaking with considerable risks. Yet hundreds attempt them every year, and there is a growing industry of companies offering services to assist less experienced climbers in reaching the summits.
+Now, one of Otzi's distant descendants, intrepid business man and mountaineering enthusiast Bo L. Zano, wants to begin his own Himalayan expedition company, \emph{Otzi's Adventures}, to help others conquer those masses of rock and ice that looked with such indifference upon his ancestor so many years ago. Having already made his initial fortune in the portable oxygen production game, Bo hopes to form a symbiotic relationship between his two ventures, whereby he sells oxygen to his climbing clients and guides them up and down the mountain safely to climb (and buy) again. Bo has tasked us with analyzing years of data on attempted climbs on the eight 8000ers in the Nepal Himalaya to assess how we can give our clients the best chance of summiting, reduce the risks inherent in climbing, and to explain the many benefits of using supplemental oxygen.
+
 # Fitting Distributions
 ## Climbs Before Death - Geometric
 Given our knowledge of the geometric distribution, it makes sense to attempt to model the number of expeditions a climber goes on before dying geometrically. We have discrete, positive data, and want to count the number of trials (climbs) until a condition is met (death). Note that it is possible (preferable, even) that a climber does not die while attempting a peak. In this setup, we merely assign this outcome a probability of 0. 
@@ -712,7 +715,7 @@ Of course, as in the linear regression model, we should control for other variab
 \begin{align*}
     logit(msuccess_i) = \alpha + \beta_1 mo2used_i + \beta_2 mainseason_i + \beta_3 sex_i + \beta_4 hired_i + \beta_5 calcage_i
 \end{align*}
-Where \emph{mainseason} indicates whether a climb took place in the spring (1) or not (0), since spring is the most common time of year to climb. \emph{sex} controls for the sex of the climber (1-male, 0-female), \emph{hired} controls for whether the climber was hired crew, such as a Sherpa or high-altitude porter (1-yes, 0-no), and \emph{calcage} is the age of the climber. \\
+Where \emph{mainseason} indicates whether a climb took place in the spring (1) or not (0), since spring is the most common time of year to climb. \emph{sex} controls for the sex of the climber (1-male, 0-female), \emph{hired} controls for whether the climber was hired crew, such as a Sherpa or high-altitude porter (1-yes, 0-no), and \emph{calcage} is the age of the climber. 
 Again, we see that using oxygen significantly increases the odds of summiting, with those using oxygen at about 20 times the odds of summiting as those who don't. Even when controlling for other factors, oxygen has by far the largest impact on odds of summiting. Hired Sherpas and porters are also at slightly increased (1.66 times) odds of summiting. This makes sense given their experience and common role as guides on commercial expeditions, so if any portion of an expedition summits, it is likely some Sherpas will be amongst the summiters, guiding clients to the top. Each year increase in age leads to very slightly decreased odds of summiting, as expected given the physical nature of mountaineering. A somewhat unexpected result is the decreased (0.55 times) odds of summiting when climbing in the main spring season. We'd expect there to be increased odds given the spring having the most favorable weather conditions in the Himalaya, though perhaps the negative result is due to the larger portion of inexperienced climbers on commercial expeditions outweighing this. Finally, men are at slightly decreased odds of summiting, but the result is not significant.   
 
 
