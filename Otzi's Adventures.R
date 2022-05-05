@@ -528,7 +528,7 @@ ggsurvplot(
   conf.int = TRUE, 
   title = "Climbing Everest",
   xlab = "Height (in m)", 
-  ylab = "Overall probability")
+  ylab = "Overall probability", legend.labs = c("Female", "Male"))
 # Looks like females reach higher points of Everest at slightly lower rates than males. 
 
 summary(survfit(Surv(mperhighpt, status) ~ strata(sex), data = ever), times = 8000)
@@ -539,7 +539,7 @@ ggsurvplot(
   conf.int = TRUE, 
   title = "Climbing Everest",
   xlab = "Height (in m)", 
-  ylab = "Overall probability")
+  ylab = "Overall probability", legend.labs = c("Under 18", "18-34", "35-49", "50-64", "65 and Older"))
 # It looks like climbing success decreases as you increase the age group. Those under 18 are the most successful with over 80% summiting (though this is likely a selection effect), but those over 65 summit at about a rate of 25%
 
 # By leader status
@@ -548,7 +548,7 @@ ggsurvplot(
   conf.int = TRUE, 
   title = "Climbing Everest",
   xlab = "Height (in m)", 
-  ylab = "Overall probability")
+  ylab = "Overall probability", legend.labs = c("Not Leader", "Leader"))
 # Leaders have about a 60% probability of summiting, while non-leaders have about a 75% probability. I wonder if there is a practical reason for this, like leaders do many trips so don't need to summit everytime or leaders are responsible for straglers on the expedition who can't make it to the peak.
 
 # By year 
@@ -557,7 +557,7 @@ ggsurvplot(
   conf.int = TRUE, 
   title = "Climbing Everest",
   xlab = "Height (in m)", 
-  ylab = "Overall probability")
+  ylab = "Overall probability", legend.labs = c("2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019"))
 # No one summits in 2015 because of a major avalanche on Everest. Great to see that our data is reflecting known realities.
 
 # By season
@@ -566,7 +566,7 @@ ggsurvplot(
   conf.int = TRUE, 
   title = "Climbing Everest",
   xlab = "Height (in m)", 
-  ylab = "Overall probability")
+  ylab = "Overall probability", legend.labs = c("Spring", "Fall", "Winter"))
 # Not only is the spring the most popular season to climb, it appears to the only season where we observe people actually summiting. 
 
 
