@@ -254,6 +254,7 @@ For each peak, we estimate the shape and rate parameters using \emph{fitdist}, a
   curve(dgamma(x, shape = shape, rate = rate), add = TRUE, col = "red")
 ```
 
+Beta distributions can be applied to modeling continuous random variables whose values range from 0 to 1. Although the initial climber dataset does not contain any variables for which the beta distribution would be appropriate, we create a number of expedition-level variables representing proportions. One of these variables is the proportion of climbers on an expedition who are male. The beta distribution that we estimate from the data generally matches the distribution we observe. However, a chi-sq goodness of fit test shows that the estimated beta distribution does not accurately model the proportion of males climbers in an expedition. In the Q-Q plot, we see that the failure of the beta distribution is likely due to the large portion of our observations (~36\%) at the upper bound of 1. \\
 
 ```{r}  
   
@@ -303,6 +304,7 @@ curve(y, to=1, col="red", add=TRUE)
 
 ```
 
+Survival plots, common in epidemiology, display the probability of survival past a point in time. Interestingly, The survival function itself is equal to (1 - CDF); so, the survival plots are complementary to our well-known CDF plots. Rather than using time, we adapt the survival plot to show the probability that a climber reaches at least a certain height on Mt. Everest. For climbers who have recorded personal high point, approximately 75\% reach the peak of Mt. Everest at 8849m. The probability of reaching point decreases rather steadily from base camp to the summit of Everest, indicating that climbers don't face a universal obstacle on the climb up. We see that male climbers are more likely to reach higher evaluations than female climbers, with the average male climber reaching \~8180m compared to the average female climber at \~7680m. Unsurprising for a physical feat like mountaineering, we find that younger climbers have greater success reaching higher elevations and the peak. Our cohort of climbers who are under 18 summit over 80\% of the time; this is assuredly a consequence of selection, as the few children who climb Everest must be heavily vetted to ensure their fitness for the task. On the other hand, climbers over 65 only reach the summit about 25\% of the time. We observe climbers designated as "expedition leaders" reach heights above 7000m at lower rates than those without the designation. This is an unexpected finding, as one might think that leaders would be most capable of climbing. We suspect that there is a practical explanation for this, such as leaders going on multiple expeditions and not needing to summit every time or needing to stay behind with climbers who decide not to continue climbing. We find that probability of reaching a given height is similar across the years of our data, with one major exception. In 2015, no climber reaches the peak of Everest and almost no one goes above 7000m. With a bit of investigation, we learn that there was a major earthquake that set off a series of avalanches that resulted in the premature end of the climbing season. Across all years, the popular spring climbing season has the best outcomes, while those who climb in the winter have 0\% probability of reaching the summit. \\
 ```{r}
 
 
@@ -428,7 +430,18 @@ hist(diffs, main = "Difference of Means", col = "cadetblue4", breaks = "FD", xli
 abline(v = observed, col = "firebrick4")
 ```
 
+Expeditions up these "8000ers" are no small tasks, and climbers might have any number of motivations. There are professional climbers or avid mountaineers, looking to add another climb; there are scientists, hoping to conduct research along the way; there are novices who have the resources to pursue a Himalayan adventure for the bragging rights or to cross an item off their "bucket-list." We believe that the summit success rates likely varies across different types of climbers. To investigate this, we compare climbers whose occupation is listed as a variant of "alpinist," who we view as likely to be a professional climber, to climbers whose occupation is listed as a variant of "business," who we view as likely to be novices. (Unfortunately we do not have a large enough sample for "professors" or "mathematicians.") We find that business people have a summit success rate of 41.7\%, while alpinists have a summit success rate of 47.4\%. We use a permutation test to see if 5.7 percentage point lower success rate is statistically significant. At a 5\% significance level, we reject the null hypothesis and conclude that business people and alpinist have different summit success rates. We confirm this result by running a chi-sq test on the contingency table of occupation and summit success. Our chi-sq test statistic and p-value match those of our permutation test and again lead us to reject the null hypothesis that business people and alpinists have the same summit success rates.  \\
 
+\begin{tabular}{c|c|c|c|}
+    & \multicolumn{2}{c|}{Summit Success}  \\
+     & FALSE & TRUE \\
+     \hline 
+    Alpinists & 853 & 770 \\
+    \hline
+    Business people & 243 & 174 \\
+    \hline
+\end{tabular}
+\\
 ```{r}
 
 
@@ -723,8 +736,6 @@ Akaike Inf. Crit. & 14,284.240 \\
 \end{tabular} 
 \end{table} 
 
-
-
 ```{r}
 
 ### WEATHER DATA ###
@@ -757,8 +768,17 @@ spring_weather <- basecamp %>%
   mutate(rainy_day = as.numeric(total_precip > 0), # rainy day if have any precipitation 
          high_humidity = as.numeric(humid > mean(humid))) # high humidity day if above average humidity 
 
+```
 
+We are interested in the utilization of supplemental oxygen to support climbers on their expeditions. One factor that can impact the demand for supplemental oxygen is weather conditions. As barometric pressure drops, the oxygen saturation drops, thus increasing the likelihood of needing supplemental oxygen. We look at weather conditions at Mt. Everest Basecamp during the spring climbing seasons of 2020 and 2021 to see if there are other weather factors to predict barometric pressure. Looking at basic correlation, we decide to first estimate a uni-variate model that uses temperature to predict barometric pressure.  
 
+\begin{equation}
+    Barometric \enspace Pressure = \beta_1 Temperature + \epsilon
+\end{equation}
+
+We find a statistically coefficient on temperature of 0.347, meaning that for every 1 degree Celsius increase in temperature we expect barometric pressure to increase by 0.347 hPa. And, 34\% of the variation in barometric pressure can be explained by the variation in temperature. \\
+
+```{r}
 # Let's plot the data and the regression line we calculated 
 ggplot(data = spring_weather, aes(x = temp, y = pressure)) + 
   geom_point() + 
@@ -766,7 +786,7 @@ ggplot(data = spring_weather, aes(x = temp, y = pressure)) +
        x = "Temperature (degrees C)",
        y = "Barometric Pressure (hPa)") + 
   geom_abline(intercept = b, slope = a, color="red", size=1.5)
-# Our regression line seems to be capturing the general relationshp between temperature and barometric pressure. 
+# Our regression line seems to be capturing the general relationship between temperature and barometric pressure. 
 
 # Let's double check that a linear relationship is appropriate by examining the residual plot. 
 ggplot(data = spring_weather, aes(x = temp, y=resid_pressure)) + 
@@ -776,7 +796,18 @@ ggplot(data = spring_weather, aes(x = temp, y=resid_pressure)) +
        y = "Residual") + 
   geom_hline(yintercept = 0, color ="blue")
 # Our residuals aren't necessarily evenly distributed across temperature values. We see some extreme negative residuals (<-5) only between -10 and 0 degrees C, and there is less variation in residual magntitude at the extremes of our temperature range. Nevertheless, the residual plot doesn't suggest that a linear model isn't appropriate.
+```
 
+Then, we estimate a bi-variate model that uses temperature and binary variable of high humidity. Ex-ante, we would not suspect that high humidity is a statistically significant predictor as we see low correlation between high humidity and our outcome of barometric pressure, which our plot adding a third dimension of high humidity as color supports. 
+
+\begin{equation}
+    Barometric \, Pressure = \beta_1 Temperature + \beta_2 High \, Humidity+ \epsilon
+\end{equation}
+
+We unexpectedly find that the coefficient on high humidity of 0.647 is statistically significant. This means we expect barometric pressure to be 0.647 hPa higher on days with high humidity, holding temperature constant. However, our R-squared coefficient of determination only increase 0.35, so adding the second predictor only increases about power to explain variation in barometric pressure by 1 percentage point. We ultimately conclude that adding the high humidity predictor 
+isn't advantageous, and we should utilizing our uni-variate model. 
+
+```{r} 
 
 # Because we are using a factor variable, it is easy to add a visualization of a 3rd variable. We can start here to see what results we might expect by following the same steps as above.
 ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high_humidity))) + 
@@ -787,10 +818,10 @@ ggplot(data = spring_weather, aes(x = temp, y = pressure, color = as.factor(high
        color = "High Humidity") 
 # I hypothesize that high humidity will not be a statistically significant predictor in our model. There is similar variation in both temperature and barometric pressure for high humidity and non-high humidity days. Also, we already know there is weak correlation between humidity variables and our outcome of barometric pressure from above. 
 
+```
+We now have an indirect pathway for predicting the need for supplemental oxygen: at lower temperatures, the barometric pressure is lower, and the oxygen saturation is lower. We only expect to hold expeditions during the spring hiking season (March - May). Therefore, we will look at our average temperature readings for the spring season to ascertain the average temperature at Everest basecamp and seasonal variation in the temperature. We take a random samples of 50 temperature readings to construct 95\% confidence intervals for the average temperature. We very reliably contain the true population mean of -8.48 degree Celsius in our confidence intervals. But, we find that the underlying temperatures do not follow a normal distribution so we end up overestimating more often then underestimating. We apply Fourier analysis to our temperature data. Using the first three coefficients (that correspond to our 3 months of spring data), we are able to capture the overall seasonal trend. Temperature is lower in March into the beginning of April and reaches season highs in mid-May. Yet, our models seems to have issues with estimating temperatures at the beginning and end of the season. When we increase the number of coefficients to 13 (to correspond to the 13 weeks of data), we better approximate our data but without getting into the daily variation of temperature. We would likely want to use a model that incorporates between 3 and 13 Fourier coefficients to predict temperature at any point in the spring. \\
 
-
-
-
+```{r}
 ### fourier ###
 # Since temperature can serve as a predictor for barometric pressure, let's see if we can model temperatures over the spring season.
 temp_2020 <- spring_weather[1:2207,]$temp # temperatures in 2020
