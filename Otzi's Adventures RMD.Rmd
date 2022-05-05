@@ -816,6 +816,15 @@ coeff <- B_inv%*%A_t%*%m3; coeff # coefficients come from B_inv %*% A_t %*% pres
 b <- coeff[1,1]; b # intercept: 534.027. Interpretation: If it is 0 degrees Celsius, we expect the barometric pressure to be 534.027 hPa
 a <- coeff[2,1]; a # slope: 0.347086. Interpretation: For every 1 degree increase in temperature, we expect the barometric pressure to increase by 0.37 hPa.
 
+pred_pressure <- b + a*spring_weather$temp
+spring_weather$resid_pressure = spring_weather$pressure - pred_pressure
+var_pred <- var(pred_pressure)
+var_obs <- var(spring_weather$pressure)
+R2 <- var_pred/var_obs; R2 # We can explain about 34% of the variation in pressure by temperature. 
+N <- nrow(spring_weather)
+Adj_R2 <- 1 - ( (1-R2) * (N-1) / (N-1-1) ); Adj_R2 # 1 independent variable; Adjusted for number of parameters, we still can explain about 34% of the variation in pressure by temperature.
+
+
 # Let's plot the data and the regression line we calculated 
 ggplot(data = spring_weather, aes(x = temp, y = pressure)) + 
   geom_point() + 
