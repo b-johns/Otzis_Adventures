@@ -127,9 +127,9 @@ Now, one of Otzi's distant descendants, intrepid business man and mountaineering
 
 # Fitting Distributions
 ## Climbs Before Death - Geometric
-Given our knowledge of the geometric distribution, it makes sense to attempt to model the number of expeditions a climber goes on before dying geometrically. We have discrete, positive data, and want to count the number of trials (climbs) until a condition is met (death). Note that it is possible (preferable, even) that a climber does not die while attempting a peak. In this setup, we merely assign this outcome a probability of 0. 
+Is there a certain number of climbs one can attempt before an unfortunate end is expected? Given our knowledge of the geometric distribution, it makes sense to attempt to model the number of expeditions a climber goes on before dying geometrically. We have discrete, positive data, and want to count the number of trials (climbs) until a condition is met (death). Note that it is possible (preferable, even) that a climber does not die while attempting a peak. In this setup, we merely assign this outcome a probability of 0. 
 
-Using R's \emph{fitdist} function on, we estimate the parameter for a geometric distribution based on the data to be $p = 0.31$, which implies a climber who ultimately dies can expect to attempt about three climbs before dying. However, when we compare our observed data with values from the theoretical distribution by binning and running a Chi-Square test, the results ultimately indicate that this data is not consistent with a geometric distribution. The discrepancy between the observed and expected values is clear to see in the joint barplot, where the expected value for one climb is much lower than observed, while for two or more climbs, the expected value is consistently higher. 
+We aggregate the data for each climb into a tally of number of climbs undertaken by each unique climber, and filter to look at only those who ultimately died. Using R's \emph{fitdist} function , we estimate the parameter for a geometric distribution based on the data to be $p = 0.31$, which implies a climber who dies can expect to attempt about three climbs before dying. However, when we compare our observed data with values from the theoretical distribution by binning and running a Chi-Square test, the results ultimately indicate that this data is not consistent with a geometric distribution. The discrepancy between the observed and expected values is clear to see in the joint barplot, where the expected value for one climb is much lower than observed, while for two or more climbs, the expected value is consistently higher. 
 ```{r, echo=FALSE}
 
 ################################################################################
@@ -208,7 +208,7 @@ barplot(rbind(obs_bin, exp_bin),
         legend.text = c("Observed", "Expected"))
 ```
 ## Summit Times - Gamma
-Reaching the summit and returning safely are the ultimate goals of any mountaineering expedition, and the time the summit is reached can have substantial implications for the safety of the descent. Most climbers seek to time their summit push to arrive by late morning, in order to avoid descending in darkness or during the common late afternoon storms. We will explore this relationship between summit times and safety in greater depth later, but for now we attempt to fit a distribution to the summiting times for climbers on each peak individually and across all eight combined. In theory, modeling this data with a gamma distribution makes the most sense. We have all non-negative values, and we expect the data to be skewed right with a peak that rises somewhat rapidly (as the majority of climbers summit in the mid-to-late morning) before falling off exponentially (as summiting later and later in the day is more and more dangerous). Indeed, looking at a histogram of summit time across all eight peaks, we observe this general shape. 
+Reaching the summit and returning safely are the ultimate goals of any mountaineering expedition, and the time the summit is reached can have substantial implications for the safety of the descent. Most climbers seek to time their summit push to arrive by late morning, in order to avoid descending in darkness or during the common late afternoon storms. We will explore this relationship between summit times and safety in greater depth later, but for now we attempt to fit a distribution to the summiting times for climbers on each peak individually and across all eight combined. In theory, modeling this data with a gamma distribution makes the most sense. We have all non-negative values, and we expect the data to be skewed right with a peak that rises somewhat rapidly (as the majority of climbers summit in the mid-to-late morning) before falling off exponentially (as summiting later in the day is more dangerous and therefore less common). Indeed, looking at a histogram of summit time for each climb across all eight peaks, we observe this general shape. 
 ```{r, echo=FALSE}
 
 summiters <- climbers %>% 
@@ -234,7 +234,7 @@ hist(summiters$summit_time,
      probability = TRUE, breaks = "FD")
 ```
 
-For each peak, we estimate the shape and rate parameters using \emph{fitdist}, and check the fit of the observed data to the expected values given our estimated parameters using a comparison by deciles approach. The results show that in general summit times cannot be reliably modeled by a gamma distribution. Only one peak, Lhotse, returned a p-value large enough to suggest that the data may come from a gamma distribution. Given the estimated parameters for Lhotse (shape $8.1$, rate $0.82$), our expected value for summit time is just a little before 10am, with a 12 hour variance.
+For each peak, we estimate the shape and rate parameters using \emph{fitdist}, and check the fit of the observed data to the expected values given our estimated parameters using a comparison by deciles approach. The results show that in general, summit times cannot be reliably modeled by a gamma distribution. Only one peak, Lhotse, returned a p-value large enough to suggest that the data may come from a gamma distribution. Given the estimated parameters for Lhotse (shape $8.1$, rate $0.82$), our expected value for summit time is just a little before 10am, with a 12 hour variance.
 
 ```{r, echo=FALSE}
   # vector of summit times
@@ -376,7 +376,7 @@ ggsurvplot(
 ## Summit Time and Mortality
 Do people that die on their climbs summit later than those who survive? We expect the answer to be yes. In mountaineering, teams will usually decide on a ``turnaround time" for when they make their final push to the summit from their highest camp. As the name suggests, this is the time at which climbers should turn around, regardless of how close to the top they are. These times can vary by mountain, season, and expected weather conditions, but they are generally set in the early afternoon so that climbers will have enough time to get back down to their high camp before nightfall or afternoon storms set in. Ignoring these times is considered quite dangerous, and there have been some famously disastrous examples of why that is throughout history. To avoid this danger, most climbers try to reach the summit by mid-to-late morning. 
 
-Graphically, we can see the disparity between the summit times of those who live and those who die with a simple boxplot, which gives us an initial indication that there is likely a significant difference in summiting time between these groups. The median climber who survived summited around 8am, while those who died were closer to noon or 1pm. The interquartile ranges only overlap slightly, and only beginning of the outliers amongst the survivors summit around the same time as the 75\textsuperscript{th} percentile for those who died.
+Using data for distinct climbs, we can graphically see the disparity between the summit times of those who live and those who die on a particular climb with a simple boxplot, which gives us an initial indication that there is likely a significant difference in summiting time between these groups. The median climber who survives summits around 8am, while those who die are closer to noon or 1pm. The interquartile ranges only overlap slightly, and only beginning of the outliers amongst the survivors summit around the same time as the 75\textsuperscript{th} percentile for those who die.
 
 ```{r, echo=FALSE}
 
@@ -405,7 +405,7 @@ ggplot(data = summiters, aes(x = death, y = summit_time)) +
 
 ```
 
-Next, we conduct a permutation to test whether those who died summit significantly later on average than those who survive. The mean summiting times amongst climbers who died is around 12:30pm, while the average for survivors is around 8:30pm. This four-hour difference seems quite large, and when we run the permutation test, we can see graphically how far out on the histogram of differences in mean the observed value is. Our p-value indicates there is only a $0.001$ probability that we would observe such a large difference due to chance, so we conclude that those who died summited significantly later on average than those who survive. This further highlights the importance of early summits and turnaround times for climber safety.
+Next, we conduct a permutation to test whether those who die summit significantly later on average than those who survive. The mean summiting times amongst climbers who die on that particular climb is around 12:30pm, while the average for survivors is around 8:30am. This four-hour difference seems quite large, and when we run the permutation test, we can see graphically how far out on the histogram of differences in mean the observed value is. Our p-value indicates there is only a $0.001$ probability that we would observe such a large difference due to chance, so we conclude that those who die summit significantly later on average than those who survive. This further highlights the importance of early summits and turnaround times for climber safety.
 
 ```{r, echo=FALSE}
 
@@ -603,7 +603,6 @@ However, to truly capture the effect that a climber's oxygen use ratio has on th
 \end{align*}
 Where \emph{nsuccess} is the number of successful summits, \emph{o2ratio} is the oxygen use ratio, \emph{nclimb} is the total number of climbs someone attempted, \emph{died} is a dummy variable for whether or not they died (1-yes, 0-no), \emph{calcage} is the age of the climber, and \emph{sex} is a dummy variable for the sex of the climber (1-male, 0-female). 
 
-\newpage
 
 \begin{table}[!htbp] \centering 
   \caption{Linear Regression Predicion of Summit Success} 
@@ -643,15 +642,15 @@ Residual Std. Error & 0.776 (df = 8569) \\
 \end{table} 
 
 
-The results show that all of our variables are significant predictors of number of successful summits, with oxygen ratio having the largest positive impact, with an increase of about one summit per unit increase in the oxygen ratio. That is to say, someone who always uses oxygen is will summit one more mountain than someone who never uses oxygen. Number of climbs enters positively as well, as expected from our earlier regression. An increase in age is associated with a slight decrease in the number of summits, which makes sense given the physical requirements of climbing. A climber who dies is, of course, not going to have the opportunity to summit any more mountains, so we see \emph{died} enter negatively as well. And finally, men summit slightly more peaks than women.
+The results show that all of our variables are significant predictors of number of successful summits, with oxygen ratio having the largest positive impact, with an increase of about one summit per unit increase in the oxygen ratio. That is to say, someone who always uses oxygen will summit one more mountain than someone who never uses oxygen. Number of climbs enters positively as well, as expected from our earlier regression. An increase in age is associated with a slight decrease in the number of summits, which makes sense given the physical requirements of climbing. A climber who dies is, of course, not going to have the opportunity to summit any more mountains, so we see \emph{died} enter negatively as well. And finally, men summit slightly more peaks than women.
 
 
 ## Oxygen Use Impact on Odds of Summiting (Logistic Regression)
-However, to best understand oxygen's impact on summit success, it may be best to look at data on a per-climb basis, rather than aggregates over individual climbers' entire history on the mountains. For this, we turn to logistic regression, to measure the impact that oxygen use has on the odds of summiting. We estimate the following simple logistic regression:
+However, to best understand oxygen's impact on summit success, it may be best to look at data on a per-climb basis, rather than aggregates over individual climbers' entire history on the mountains. For this, we turn to logistic regression to measure the impact that oxygen use has on the odds of summiting. We estimate the following simple logistic regression:
 \begin{align*}
     logit(msuccess_i) = \alpha + \beta mo2used_i
 \end{align*}
-Where \emph{msuccess} is a binary variable for whether a climber summited on a particular climb (1-yes, 0-no), and \emph{mo2used} is a binary variable for whether or not they used oxygen on that climb (1-yes, 0-no). From the graph, we see that people use use oxygen are at increased odds of summiting, and estimating the model provides striking results. Oxygen use enters significantly in the model, and when we calculate the odds ratio of summiting based on oxygen use, we get $e^{3.42} = 30.5$, indicating that those who use oxygen are at over 30 times the odds of summiting as those who do not. 
+Where \emph{msuccess} is a binary variable for whether a climber summited on a particular climb (1-yes, 0-no), and \emph{mo2used} is a binary variable for whether or not they used oxygen on that climb (1-yes, 0-no). From the graph, we see that people who use oxygen are at increased odds of summiting, and estimating the model provides striking results. Oxygen use enters significantly in the model, and when we calculate the odds ratio of summiting based on oxygen use, we get $e^{3.42} = 30.5$, indicating that those who use oxygen are at over 30 times the odds of summiting as those who do not. 
 
 ```{r, echo=FALSE}
 # logit #
@@ -713,7 +712,7 @@ Of course, as in the linear regression model, we should control for other variab
 \begin{align*}
     logit(msuccess_i) = \alpha + \beta_1 mo2used_i + \beta_2 mainseason_i + \beta_3 sex_i + \beta_4 hired_i + \beta_5 calcage_i
 \end{align*}
-Where \emph{mainseason} indicates whether a climb took place in the spring (1) or not (0), since spring is the most common time of year to climb. \emph{sex} controls for the sex of the climber (1-male, 0-female), \emph{hired} controls for whether the climber was hired crew, such as a Sherpa or high-altitude porter (1-yes, 0-no), and \emph{calcage} is the age of the climber. 
+Where \emph{mainseason} indicates whether a climb took place in the spring (1) or not (0), since spring is the most common time of year to climb. \emph{sex} controls for the sex of the climber (1-male, 0-female), \emph{hired} controls for whether the climber is hired crew, such as a Sherpa or high-altitude porter (1-yes, 0-no), and \emph{calcage} is the age of the climber. 
 Again, we see that using oxygen significantly increases the odds of summiting, with those using oxygen at about 20 times the odds of summiting as those who don't. Even when controlling for other factors, oxygen has by far the largest impact on odds of summiting. Hired Sherpas and porters are also at slightly increased (1.66 times) odds of summiting. This makes sense given their experience and common role as guides on commercial expeditions, so if any portion of an expedition summits, it is likely some Sherpas will be amongst the summiters, guiding clients to the top. Each year increase in age leads to very slightly decreased odds of summiting, as expected given the physical nature of mountaineering. A somewhat unexpected result is the decreased (0.55 times) odds of summiting when climbing in the main spring season. We'd expect there to be increased odds given the spring having the most favorable weather conditions in the Himalaya, though perhaps the negative result is due to the larger portion of inexperienced climbers on commercial expeditions outweighing this. Finally, men are at slightly decreased odds of summiting, but the result is not significant.   
 
 

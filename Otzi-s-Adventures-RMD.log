@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.5.4)  5 MAY 2022 17:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.5.4)  5 MAY 2022 20:06
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -412,15 +412,15 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 71.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 120.
+(Font)              <10> on input line 124.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 120.
+(Font)              <7> on input line 124.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 120.
+(Font)              <5> on input line 124.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf, id=72, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 130.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf  used on input line 134.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [1
 
@@ -428,129 +428,129 @@ Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf, id=87, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf  used on input line 152.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf  used on input line 156.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [2 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-4-1.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-5-1.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf, id=106, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf  used on input line 173.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf  used on input line 177.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf, id=107, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf  used on input line 185.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf  used on input line 189.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [3 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-6-1.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf, id=118, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf  used on input line 204.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf  used on input line 208.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf, id=119, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf  used on input line 206.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf  used on input line 210.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [4 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-7-1.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-1.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf, id=137, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf  used on input line 249.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf  used on input line 253.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [5 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-8-2.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf, id=150, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf  used on input line 251.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf  used on input line 255.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf, id=151, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf  used on input line 253.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf  used on input line 257.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [6 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-1.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-2.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf, id=173, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf  used on input line 255.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf  used on input line 259.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf, id=174, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf  used on input line 257.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf  used on input line 261.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [7 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-3.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-4.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf, id=196, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf  used on input line 259.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf  used on input line 263.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [8 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-5.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-9-6.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf, id=218, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf  used on input line 286.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf  used on input line 291.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf, id=219, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf  used on input line 300.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf  used on input line 305.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [9 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-10-1.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf, id=231, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf  used on input line 339.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf  used on input line 344.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
 [10 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-11-1.pdf>]
 <Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf, id=243, 505.89pt x 361.35pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf  used on input line 407.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf  used on input line 412.
 (pdftex.def)             Requested size: 469.76265pt x 335.54477pt.
 [11 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-12-1.pdf>] [12 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-13-1.pdf>] [13]
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf, id=276, 361.35pt x 237.88875pt>
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf, id=278, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf  used on input line 494.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf  used on input line 497.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-[14] [15 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf>]
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf, id=295, 361.35pt x 237.88875pt>
+[14 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-15-1.pdf>]
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf, id=291, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf  used on input line 634.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf  used on input line 637.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-[16]
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf, id=304, 361.35pt x 237.88875pt>
+[15]
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf, id=300, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf  used on input line 636.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf  used on input line 639.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-[17 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf>] [18 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf>]
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf, id=326, 361.35pt x 237.88875pt>
+[16 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-1.pdf>] [17 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-19-2.pdf>]
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf, id=322, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf  used on input line 686.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf  used on input line 689.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf, id=327, 361.35pt x 237.88875pt>
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf, id=323, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 715.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf  used on input line 718.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-[19 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf>]
-<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf, id=339, 361.35pt x 237.88875pt>
+[18 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-20-1.pdf>]
+<Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf, id=334, 361.35pt x 237.88875pt>
 File: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf Graphic file (type pdf)
 <use Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf>
-Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf  used on input line 717.
+Package pdftex.def Info: Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf  used on input line 720.
 (pdftex.def)             Requested size: 361.34912pt x 237.88815pt.
-[20 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf>]
-<final_power_graph.png, id=357, 453.19313pt x 274.77657pt>
+[19 <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-1.pdf> <./Otzi-s-Adventures-RMD_files/figure-latex/unnamed-chunk-21-2.pdf>]
+<final_power_graph.png, id=353, 453.19313pt x 274.77657pt>
 File: final_power_graph.png Graphic file (type png)
 <use final_power_graph.png>
-Package pdftex.def Info: final_power_graph.png  used on input line 747.
+Package pdftex.def Info: final_power_graph.png  used on input line 750.
 (pdftex.def)             Requested size: 453.2335pt x 274.80103pt.
-[21 <./final_power_graph.png>] [22] (./Otzi-s-Adventures-RMD.aux)
+[20 <./final_power_graph.png>] [21] (./Otzi-s-Adventures-RMD.aux)
 
 LaTeX Warning: There were multiply-defined labels.
 
@@ -558,18 +558,18 @@ Package rerunfilecheck Info: File `Otzi-s-Adventures-RMD.out' has not changed.
 (rerunfilecheck)             Checksum: B7E5AFA18E08E2B64976FEBCF11C884C;3643.
  ) 
 Here is how much of TeX's memory you used:
- 10691 strings out of 480265
- 177977 string characters out of 5892480
- 455141 words of memory out of 5000000
+ 10690 strings out of 480265
+ 177970 string characters out of 5892480
+ 456141 words of memory out of 5000000
  28360 multiletter control sequences out of 15000+600000
  518804 words of font info for 67 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  60i,10n,63p,488b,396s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}{c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}<c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi10.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi7.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr10.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr17.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr7.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri10.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb><c:/Users/michael/AppData/Roaming/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy7.pfb>
-Output written on Otzi-s-Adventures-RMD.pdf (22 pages, 1189227 bytes).
+Output written on Otzi-s-Adventures-RMD.pdf (21 pages, 1189138 bytes).
 PDF statistics:
- 431 PDF objects out of 1000 (max. 8388607)
- 337 compressed objects within 4 object streams
- 65 named destinations out of 1000 (max. 500000)
+ 427 PDF objects out of 1000 (max. 8388607)
+ 334 compressed objects within 4 object streams
+ 64 named destinations out of 1000 (max. 500000)
  252 words of extra memory for PDF output out of 10000 (max. 10000000)
 
